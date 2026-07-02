@@ -311,7 +311,7 @@ try {
                 <!-- Numer pokoju -->
                 <div class="col-md-6 mb-3">
                   <label for="room_number" class="form-label small fw-semibold">Numer pokoju</label>
-                  <input type="text" class="form-control form-control-sm" id="room_number" name="room_number" required placeholder="np. 102, Magazyn A">
+                  <input type="text" class="form-control form-control-sm" id="room_number" name="room_number" required placeholder="np. P102, Magazyn A">
                 </div>
 
                 <!-- Typ urządzenia -->
