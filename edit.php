@@ -29,11 +29,8 @@ if (!$item) {
     exit;
 }
 
-// Check authorization: only admin or the creator can edit
-if ($user_role !== 'admin' && (int)$item['created_by'] !== $user_id) {
-    header('Location: index.php');
-    exit;
-}
+// Any logged-in user can edit any item.
+
 
 $err = '';
 $ok = '';

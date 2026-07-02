@@ -112,20 +112,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $item_id = (int)($_POST['item_id'] ?? 0);
         if ($item_id > 0) {
             try {
-                if ($user_role === 'admin') {
-                    $stmt = db()->prepare("DELETE FROM inventory WHERE id = :id");
-                    $stmt->execute([':id' => $item_id]);
-                    $affected = $stmt->rowCount();
-                } else {
-                    $stmt = db()->prepare("DELETE FROM inventory WHERE id = :id AND created_by = :created_by");
-                    $stmt->execute([':id' => $item_id, ':created_by' => $user_id]);
-                    $affected = $stmt->rowCount();
-                }
+                $stmt = db()->prepare("DELETE FROM inventory WHERE id = :id");
+                $stmt->execute([':id' => $item_id]);
+                $affected = $stmt->rowCount();
                 
                 if ($affected > 0) {
                     $ok = 'Wpis z inwentarza został usunięty.';
                 } else {
-                    $err = 'Nie masz uprawnień do usunięcia tego wpisu lub wpis nie istnieje.';
+                    $err = 'Wpis nie istnieje lub nie można go usunąć.';
                 }
             } catch (PDOException $e) {
                 $err = 'Błąd usuwania: ' . $e->getMessage();
@@ -457,7 +451,6 @@ try {
             <div class="card-body">
               <div class="d-flex justify-content-between align-items-start mb-2">
                 <span class="badge bg-secondary">Pokój: <?= htmlspecialchars($item['room_number']) ?></span>
-                <?php if ($user_role === 'admin' || (int)$item['created_by'] === $user_id): ?>
                   <div class="dropdown">
                     <button class="btn btn-light btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">⚙️</button>
                     <ul class="dropdown-menu dropdown-menu-end">
@@ -471,7 +464,6 @@ try {
                       </li>
                     </ul>
                   </div>
-                <?php endif; ?>
               </div>
               <h6 class="fw-bold card-title mb-1"><?= htmlspecialchars($item['device_type_name'] ?? 'Nieokreślony') ?> - <?= htmlspecialchars($item['manufacturer_name'] ?? 'Nieokreślony') ?></h6>
               <div class="small mb-1"><strong>S/N:</strong> <code class="text-dark"><?= htmlspecialchars($item['serial_number']) ?></code></div>
@@ -523,16 +515,12 @@ try {
                   <td class="text-muted" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="<?= htmlspecialchars($item['notes'] ?? '') ?>"><?= htmlspecialchars($item['notes'] ?? '') ?></td>
                   <td><?= htmlspecialchars($item['creator_name']) ?></td>
                   <td class="text-end px-3">
-                    <?php if ($user_role === 'admin' || (int)$item['created_by'] === $user_id): ?>
-                      <a href="edit.php?id=<?= $item['id'] ?>" class="btn btn-outline-primary btn-sm me-1 py-1">Edytuj</a>
-                      <form method="POST" action="index.php" class="d-inline" onsubmit="return confirm('Czy na pewno chcesz usunąć to urządzenie z inwentarza?');">
-                        <input type="hidden" name="action" value="delete">
-                        <input type="hidden" name="item_id" value="<?= $item['id'] ?>">
-                        <button type="submit" class="btn btn-outline-danger btn-sm py-1">Usuń</button>
-                      </form>
-                    <?php else: ?>
-                      <span class="text-muted small">Brak uprawnień</span>
-                    <?php endif; ?>
+                    <a href="edit.php?id=<?= $item['id'] ?>" class="btn btn-outline-primary btn-sm me-1 py-1">Edytuj</a>
+                    <form method="POST" action="index.php" class="d-inline" onsubmit="return confirm('Czy na pewno chcesz usunąć to urządzenie z inwentarza?');">
+                      <input type="hidden" name="action" value="delete">
+                      <input type="hidden" name="item_id" value="<?= $item['id'] ?>">
+                      <button type="submit" class="btn btn-outline-danger btn-sm py-1">Usuń</button>
+                    </form>
                   </td>
                 </tr>
               <?php endforeach; ?>
