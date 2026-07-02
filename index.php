@@ -115,11 +115,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($user_role === 'admin') {
                     $stmt = db()->prepare("DELETE FROM inventory WHERE id = :id");
                     $stmt->execute([':id' => $item_id]);
+                    $affected = $stmt->rowCount();
                 } else {
                     $stmt = db()->prepare("DELETE FROM inventory WHERE id = :id AND created_by = :created_by");
                     $stmt->execute([':id' => $item_id, ':created_by' => $user_id]);
+                    $affected = $stmt->rowCount();
                 }
-                $ok = 'Wpis z inwentarza został usunięty.';
+                
+                if ($affected > 0) {
+                    $ok = 'Wpis z inwentarza został usunięty.';
+                } else {
+                    $err = 'Nie masz uprawnień do usunięcia tego wpisu lub wpis nie istnieje.';
+                }
             } catch (PDOException $e) {
                 $err = 'Błąd usuwania: ' . $e->getMessage();
             }
@@ -450,19 +457,21 @@ try {
             <div class="card-body">
               <div class="d-flex justify-content-between align-items-start mb-2">
                 <span class="badge bg-secondary">Pokój: <?= htmlspecialchars($item['room_number']) ?></span>
-                <div class="dropdown">
-                  <button class="btn btn-light btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">⚙️</button>
-                  <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-menu-item text-primary px-3 py-1 d-block text-decoration-none" href="edit.php?id=<?= $item['id'] ?>">Edytuj</a></li>
-                    <li>
-                      <form method="POST" action="index.php" onsubmit="return confirm('Czy na pewno chcesz usunąć to urządzenie z inwentarza?');">
-                        <input type="hidden" name="action" value="delete">
-                        <input type="hidden" name="item_id" value="<?= $item['id'] ?>">
-                        <button type="submit" class="dropdown-menu-item text-danger border-0 bg-transparent px-3 py-1 text-start w-100">Usuń</button>
-                      </form>
-                    </li>
-                  </ul>
-                </div>
+                <?php if ($user_role === 'admin' || (int)$item['created_by'] === $user_id): ?>
+                  <div class="dropdown">
+                    <button class="btn btn-light btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">⚙️</button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                      <li><a class="dropdown-menu-item text-primary px-3 py-1 d-block text-decoration-none" href="edit.php?id=<?= $item['id'] ?>">Edytuj</a></li>
+                      <li>
+                        <form method="POST" action="index.php" onsubmit="return confirm('Czy na pewno chcesz usunąć to urządzenie z inwentarza?');">
+                          <input type="hidden" name="action" value="delete">
+                          <input type="hidden" name="item_id" value="<?= $item['id'] ?>">
+                          <button type="submit" class="dropdown-menu-item text-danger border-0 bg-transparent px-3 py-1 text-start w-100">Usuń</button>
+                        </form>
+                      </li>
+                    </ul>
+                  </div>
+                <?php endif; ?>
               </div>
               <h6 class="fw-bold card-title mb-1"><?= htmlspecialchars($item['device_type_name'] ?? 'Nieokreślony') ?> - <?= htmlspecialchars($item['manufacturer_name'] ?? 'Nieokreślony') ?></h6>
               <div class="small mb-1"><strong>S/N:</strong> <code class="text-dark"><?= htmlspecialchars($item['serial_number']) ?></code></div>
@@ -514,12 +523,16 @@ try {
                   <td class="text-muted" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="<?= htmlspecialchars($item['notes'] ?? '') ?>"><?= htmlspecialchars($item['notes'] ?? '') ?></td>
                   <td><?= htmlspecialchars($item['creator_name']) ?></td>
                   <td class="text-end px-3">
-                    <a href="edit.php?id=<?= $item['id'] ?>" class="btn btn-outline-primary btn-sm me-1 py-1">Edytuj</a>
-                    <form method="POST" action="index.php" class="d-inline" onsubmit="return confirm('Czy na pewno chcesz usunąć to urządzenie z inwentarza?');">
-                      <input type="hidden" name="action" value="delete">
-                      <input type="hidden" name="item_id" value="<?= $item['id'] ?>">
-                      <button type="submit" class="btn btn-outline-danger btn-sm py-1">Usuń</button>
-                    </form>
+                    <?php if ($user_role === 'admin' || (int)$item['created_by'] === $user_id): ?>
+                      <a href="edit.php?id=<?= $item['id'] ?>" class="btn btn-outline-primary btn-sm me-1 py-1">Edytuj</a>
+                      <form method="POST" action="index.php" class="d-inline" onsubmit="return confirm('Czy na pewno chcesz usunąć to urządzenie z inwentarza?');">
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="item_id" value="<?= $item['id'] ?>">
+                        <button type="submit" class="btn btn-outline-danger btn-sm py-1">Usuń</button>
+                      </form>
+                    <?php else: ?>
+                      <span class="text-muted small">Brak uprawnień</span>
+                    <?php endif; ?>
                   </td>
                 </tr>
               <?php endforeach; ?>
