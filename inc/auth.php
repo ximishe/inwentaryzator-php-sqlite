@@ -18,6 +18,24 @@ function require_login(): void {
         header('Location: login.php');
         exit;
     }
+    
+    // Refresh user role and active status from database to prevent stale sessions
+    try {
+        $stmt = db()->prepare("SELECT role, active FROM users WHERE id = :id LIMIT 1");
+        $stmt->execute([':id' => (int)$_SESSION['user_id']]);
+        $u = $stmt->fetch();
+        if ($u) {
+            if ((int)$u['active'] !== 1) {
+                // Account deactivated
+                unset($_SESSION['user_id'], $_SESSION['username'], $_SESSION['role']);
+                header('Location: login.php');
+                exit;
+            }
+            $_SESSION['role'] = $u['role'];
+        }
+    } catch (Exception $e) {
+        // Fallback to existing session role if DB is unreachable
+    }
 }
 
 function require_admin(): void {
