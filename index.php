@@ -369,6 +369,7 @@ try {
                   <select class="form-select form-select-sm" id="notes_select" name="notes_select" onchange="toggleCustomInput('notes_select', 'custom_notes_div', 'notes_custom')">
                     <option value="">-- Wybierz stan / uwagi (opcjonalnie) --</option>
                     <option value="SPRAWNY">SPRAWNY</option>
+                    <option value="NIESPRAWNY">NIESPRAWNY</option>
                     <option value="PĘKNIĘTA OBUDOWA">PĘKNIĘTA OBUDOWA</option>
                     <option value="USZKODZONA MATRYCA">USZKODZONA MATRYCA</option>
                     <option value="USZKODZONA KLAWIATURA / TOUCHPAD">USZKODZONA KLAWIATURA / TOUCHPAD</option>
