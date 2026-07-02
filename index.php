@@ -31,8 +31,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $notes = trim((string)$notes_select);
         }
 
-        if ($room_number === '' || $inventory_number === '') {
-            $err = 'Wymagane są pola: Numer pokoju, Numer inwentarzowy.';
+        if ($room_number === '') {
+            $err = 'Wymagane jest pole: Numer pokoju.';
         } else {
             try {
                 db()->beginTransaction();
@@ -358,7 +358,7 @@ try {
                 <div class="col-md-6 mb-3">
                   <label for="inventory_number" class="form-label small fw-semibold">Numer inwentarzowy</label>
                   <div class="input-group input-group-sm">
-                    <input type="text" class="form-control form-control-sm" id="inventory_number" name="inventory_number" required placeholder="np. INW/2026/001">
+                    <input type="text" class="form-control form-control-sm" id="inventory_number" name="inventory_number" placeholder="np. INW/2026/001">
                     <button class="btn btn-outline-primary" type="button" onclick="startScanner('inventory_number')">📷 Skanuj</button>
                   </div>
                 </div>
