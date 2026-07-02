@@ -48,8 +48,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $notes = trim((string)$notes_select);
     }
 
-    if ($room_number === '' || $serial_number === '' || $inventory_number === '') {
-        $err = 'Wymagane są pola: Numer pokoju, Numer seryjny, Numer inwentarzowy.';
+    if ($room_number === '' || $inventory_number === '') {
+        $err = 'Wymagane są pola: Numer pokoju, Numer inwentarzowy.';
     } else {
         try {
             db()->beginTransaction();
@@ -296,7 +296,7 @@ try {
                 <div class="col-md-6 mb-3">
                   <label for="serial_number" class="form-label small fw-semibold">Numer seryjny</label>
                   <div class="input-group input-group-sm">
-                    <input type="text" class="form-control form-control-sm" id="serial_number" name="serial_number" required value="<?= htmlspecialchars($item['serial_number']) ?>">
+                    <input type="text" class="form-control form-control-sm" id="serial_number" name="serial_number" value="<?= htmlspecialchars($item['serial_number']) ?>">
                     <button class="btn btn-outline-primary" type="button" onclick="startScanner('serial_number')">📷 Skanuj</button>
                   </div>
                 </div>
