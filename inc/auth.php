@@ -1,7 +1,9 @@
 <?php
 declare(strict_types=1);
 
-const SESSION_NAME = 'helpdesk_sess';
+if (!defined('SESSION_NAME')) {
+    define('SESSION_NAME', 'helpdesk_sess');
+}
 
 function start_session(): void {
     if (session_status() === PHP_SESSION_NONE) {

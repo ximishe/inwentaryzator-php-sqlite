@@ -109,6 +109,49 @@ try {
   <title>Użytkownicy - Inwentaryzator</title>
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    body {
+      font-family: 'Outfit', sans-serif;
+      background-color: #f3f4f6;
+      color: #1f2937;
+    }
+    .navbar {
+      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%) !important;
+      border-radius: 0 0 16px 16px;
+    }
+    .card {
+      border-radius: 16px;
+      border: none;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    }
+    .btn {
+      border-radius: 10px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background-color: #2563eb;
+      border-color: #2563eb;
+    }
+    .btn-primary:hover {
+      background-color: #1d4ed8;
+      border-color: #1d4ed8;
+    }
+    .form-control, .form-select {
+      border-radius: 10px;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #d1d5db;
+    }
+    .form-control:focus, .form-select:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+  </style>
 </head>
 <body class="bg-light">
 
@@ -178,7 +221,8 @@ try {
               <div class="alert alert-success p-2 small" role="alert"><?= htmlspecialchars($ok) ?></div>
             <?php endif; ?>
 
-            <div class="table-responsive">
+            <!-- Desktop List (Hidden on Mobile) -->
+            <div class="table-responsive d-none d-md-block">
               <table class="table table-hover align-middle small">
                 <thead class="table-light text-muted">
                   <tr>
@@ -219,6 +263,42 @@ try {
                   <?php endforeach; ?>
                 </tbody>
               </table>
+            </div>
+
+            <!-- Mobile View (Cards, Hidden on Desktop) -->
+            <div class="d-md-none">
+              <?php foreach ($users_list as $u): ?>
+                <div class="card border-0 bg-light mb-3 p-3" style="border-radius: 12px;">
+                  <form method="POST" action="users.php">
+                    <input type="hidden" name="action" value="update_user">
+                    <input type="hidden" name="user_id" value="<?= $u['id'] ?>">
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <span class="fw-bold text-dark fs-6"><?= htmlspecialchars($u['username']) ?></span>
+                      <span class="badge bg-secondary"><?= htmlspecialchars($u['email']) ?></span>
+                    </div>
+                    
+                    <div class="row g-2 mb-3">
+                      <div class="col-6">
+                        <label class="form-label small fw-semibold text-muted mb-1">Rola</label>
+                        <select name="role" class="form-select form-select-sm">
+                          <option value="user" <?= $u['role'] === 'user' ? 'selected' : '' ?>>User</option>
+                          <option value="admin" <?= $u['role'] === 'admin' ? 'selected' : '' ?>>Admin</option>
+                        </select>
+                      </div>
+                      <div class="col-6">
+                        <label class="form-label small fw-semibold text-muted mb-1">Status</label>
+                        <select name="active" class="form-select form-select-sm">
+                          <option value="1" <?= (int)$u['active'] === 1 ? 'selected' : '' ?>>Aktywny</option>
+                          <option value="0" <?= (int)$u['active'] === 0 ? 'selected' : '' ?>>Nieaktywny</option>
+                        </select>
+                      </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success btn-sm w-100 py-2">💾 Zapisz zmiany</button>
+                  </form>
+                </div>
+              <?php endforeach; ?>
             </div>
           </div>
         </div>

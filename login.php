@@ -54,20 +54,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <title>Logowanie - Inwentaryzator Mobile</title>
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
   <style>
     body {
-      background-color: #f8f9fa;
+      font-family: 'Outfit', sans-serif;
+      background: radial-gradient(circle at 10% 20%, rgba(30, 58, 138, 0.9) 0%, rgba(59, 130, 246, 0.8) 90%);
       height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
+      margin: 0;
+      padding: 15px;
     }
     .login-card {
       max-width: 400px;
       width: 100%;
       border: none;
+      border-radius: 20px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+      background-color: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+    }
+    .btn {
       border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      transition: all 0.2s;
+    }
+    .form-control {
+      border-radius: 12px;
+      padding: 0.6rem 0.8rem;
+    }
+    .form-control:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
     }
   </style>
 </head>

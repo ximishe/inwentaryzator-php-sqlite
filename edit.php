@@ -44,7 +44,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $manufacturer_id = $_POST['manufacturer_id'] ?? '';
     $serial_number = trim((string)($_POST['serial_number'] ?? ''));
     $inventory_number = trim((string)($_POST['inventory_number'] ?? ''));
-    $notes = trim((string)($_POST['notes'] ?? ''));
+    $notes_select = $_POST['notes_select'] ?? '';
+    if ($notes_select === 'custom') {
+        $notes = trim((string)($_POST['notes_custom'] ?? ''));
+    } else {
+        $notes = trim((string)$notes_select);
+    }
 
     if ($room_number === '' || $serial_number === '' || $inventory_number === '') {
         $err = 'Wymagane są pola: Numer pokoju, Numer seryjny, Numer inwentarzowy.';
@@ -149,6 +154,63 @@ try {
   <title>Edycja Urządzenia - Inwentaryzator</title>
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- HTML5 QR Code Library -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    body {
+      font-family: 'Outfit', sans-serif;
+      background-color: #f3f4f6;
+      color: #1f2937;
+    }
+    .navbar {
+      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%) !important;
+      border-radius: 0 0 16px 16px;
+    }
+    .card {
+      border-radius: 16px;
+      border: none;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    }
+    .btn {
+      border-radius: 10px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background-color: #2563eb;
+      border-color: #2563eb;
+    }
+    .btn-primary:hover {
+      background-color: #1d4ed8;
+      border-color: #1d4ed8;
+    }
+    .form-control, .form-select {
+      border-radius: 10px;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #d1d5db;
+    }
+    .form-control:focus, .form-select:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+    #scanner-container {
+      width: 100%;
+      max-width: 450px;
+      margin: 0 auto;
+      border-radius: 12px;
+      overflow: hidden;
+      background-color: #000;
+      position: relative;
+    }
+    #reader video {
+      object-fit: cover !important;
+    }
+  </style>
 </head>
 <body class="bg-light">
 
@@ -189,6 +251,13 @@ try {
             </div>
 
             <form method="POST" action="edit.php?id=<?= $item_id ?>">
+              <!-- General Scan Button -->
+              <div class="mb-3">
+                <button type="button" class="btn btn-primary w-100 py-3 d-flex align-items-center justify-content-center shadow-sm" onclick="startScanner('auto')" style="border-radius: 12px; font-size: 1.05rem; letter-spacing: 0.5px;">
+                  <span class="fs-4 me-2">📷</span> <strong>SKANUJ TABLICZKĘ / KOD</strong>
+                </button>
+              </div>
+
               <div class="row">
                 <!-- Numer pokoju -->
                 <div class="col-md-6 mb-3">
@@ -229,19 +298,39 @@ try {
                 <!-- Numer seryjny -->
                 <div class="col-md-6 mb-3">
                   <label for="serial_number" class="form-label small fw-semibold">Numer seryjny</label>
-                  <input type="text" class="form-control form-control-sm" id="serial_number" name="serial_number" required value="<?= htmlspecialchars($item['serial_number']) ?>">
+                  <div class="input-group input-group-sm">
+                    <input type="text" class="form-control form-control-sm" id="serial_number" name="serial_number" required value="<?= htmlspecialchars($item['serial_number']) ?>">
+                    <button class="btn btn-outline-primary" type="button" onclick="startScanner('serial_number')">📷 Skanuj</button>
+                  </div>
                 </div>
 
                 <!-- Numer inwentarzowy -->
                 <div class="col-md-6 mb-3">
                   <label for="inventory_number" class="form-label small fw-semibold">Numer inwentarzowy</label>
-                  <input type="text" class="form-control form-control-sm" id="inventory_number" name="inventory_number" required value="<?= htmlspecialchars($item['inventory_number']) ?>">
+                  <div class="input-group input-group-sm">
+                    <input type="text" class="form-control form-control-sm" id="inventory_number" name="inventory_number" required value="<?= htmlspecialchars($item['inventory_number']) ?>">
+                    <button class="btn btn-outline-primary" type="button" onclick="startScanner('inventory_number')">📷 Skanuj</button>
+                  </div>
                 </div>
 
                 <!-- Uwagi -->
+                <?php
+                $predefined_notes = ["SPRAWNY", "PĘKNIĘTA OBUDOWA", "USZKODZONA MATRYCA", "USZKODZONA KLAWIATURA / TOUCHPAD", "USZKODZONY PORT (USB/HDMI/ŁADOWANIA)", "BRAK ZASILACZA / AKCESORIÓW", "ŚLADY ZUŻYCIA (RYSY/OTARCIA)", "BATERIA DO WYMIANY"];
+                $current_notes = $item['notes'] ?? '';
+                $is_custom_notes = ($current_notes !== '' && !in_array($current_notes, $predefined_notes, true));
+                ?>
                 <div class="col-md-6 mb-3">
-                  <label for="notes" class="form-label small fw-semibold">Uwagi</label>
-                  <textarea class="form-control form-control-sm" id="notes" name="notes" rows="2"><?= htmlspecialchars($item['notes'] ?? '') ?></textarea>
+                  <label for="notes_select" class="form-label small fw-semibold">Stan / uwagi</label>
+                  <select class="form-select form-select-sm" id="notes_select" name="notes_select" onchange="toggleCustomInput('notes_select', 'custom_notes_div', 'notes_custom')">
+                    <option value="">-- Wybierz stan / uwagi (opcjonalnie) --</option>
+                    <?php foreach ($predefined_notes as $pn): ?>
+                      <option value="<?= $pn ?>" <?= $current_notes === $pn ? 'selected' : '' ?>><?= $pn ?></option>
+                    <?php endforeach; ?>
+                    <option value="custom" <?= $is_custom_notes ? 'selected' : '' ?>>Inny (wpisz ręcznie)...</option>
+                  </select>
+                  <div class="mt-2 <?= $is_custom_notes ? '' : 'd-none' ?>" id="custom_notes_div">
+                    <textarea class="form-control form-control-sm border-danger" id="notes_custom" name="notes_custom" rows="2" placeholder="Wpisz inne uwagi..."><?= $is_custom_notes ? htmlspecialchars($current_notes) : '' ?></textarea>
+                  </div>
                 </div>
               </div>
 
@@ -258,7 +347,33 @@ try {
 
   <!-- Bootstrap 5 JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Modal Skanera -->
+  <div class="modal fade" id="scannerModal" tabindex="-1" aria-labelledby="scannerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title fw-bold" id="scannerModalLabel">📷 Skanowanie kodu</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij" onclick="stopScanner()"></button>
+        </div>
+        <div class="modal-body text-center">
+          <p class="text-muted small">Skieruj aparat na kod kreskowy lub kod QR tabliczki znamionowej.</p>
+          <div id="scanner-container">
+            <div id="reader" style="width: 100%;"></div>
+          </div>
+          <div class="mt-3">
+            <label for="cameraSelect" class="form-label small fw-semibold">Wybierz kamerę:</label>
+            <select id="cameraSelect" class="form-select form-select-sm" onchange="switchCamera(this.value)"></select>
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0 justify-content-center">
+          <button type="button" class="btn btn-secondary btn-sm px-4" data-bs-dismiss="modal" onclick="stopScanner()">Anuluj</button>
+        </div>
+      </div>
+    </div>
+  </div>
   
+  <!-- JavaScript for conditional custom fields and scanner -->
   <script>
     function toggleCustomInput(selectId, customDivId, customInputId) {
         const select = document.getElementById(selectId);
@@ -275,6 +390,141 @@ try {
             customInput.value = '';
         }
     }
+
+    let html5QrCode;
+    let targetInputId = '';
+    let currentCameraId = '';
+
+    function startScanner(inputId) {
+        targetInputId = inputId;
+        const modalEl = document.getElementById('scannerModal');
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+
+        // Wait for modal to show, then init scanner
+        modalEl.addEventListener('shown.bs.modal', function onShown() {
+            initScanner();
+            modalEl.removeEventListener('shown.bs.modal', onShown);
+        });
+    }
+
+    function initScanner() {
+        if (!window.isSecureContext) {
+            alert("⚠️ SKANER WYMAGA POŁĄCZENIA HTTPS!\n\nPrzeglądarki mobilne blokują dostęp do kamery na stronach bez certyfikatu SSL (zaczynających się od http://). Uruchom stronę pod adresem zaczynającym się od https://");
+            const modalEl = document.getElementById('scannerModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) {
+                modal.hide();
+            }
+            return;
+        }
+
+        // Start scanning immediately with environment facingMode (rear camera)
+        startCamera(null);
+    }
+
+    function startCamera(cameraId) {
+        if (html5QrCode) {
+            html5QrCode.stop().then(() => {
+                launchCamera(cameraId);
+            }).catch(err => {
+                console.error(err);
+                launchCamera(cameraId);
+            });
+        } else {
+            launchCamera(cameraId);
+        }
+    }
+
+    function launchCamera(cameraId) {
+        html5QrCode = new Html5Qrcode("reader");
+        const config = { fps: 15, qrbox: { width: 250, height: 150 } };
+        
+        // Define camera source: either specific ID or facingMode: environment
+        const cameraSource = cameraId ? cameraId : { facingMode: "environment" };
+        
+        html5QrCode.start(
+            cameraSource, 
+            config,
+            (decodedText, decodedResult) => {
+                // Success callback
+                let assignedField = '';
+                if (targetInputId === 'auto') {
+                    // Smart detection: if code starts with INW or contains slashes, put into inventory_number
+                    if (decodedText.toLowerCase().includes('inw') || decodedText.includes('/') || decodedText.includes('\\')) {
+                        document.getElementById('inventory_number').value = decodedText;
+                        assignedField = 'Numer inwentarzowy';
+                    } else {
+                        document.getElementById('serial_number').value = decodedText;
+                        assignedField = 'Numer seryjny';
+                    }
+                    alert('Odczytano kod: "' + decodedText + '". Przypisano do: ' + assignedField);
+                } else {
+                    document.getElementById(targetInputId).value = decodedText;
+                }
+                
+                // Vibrate if supported
+                if (navigator.vibrate) {
+                    navigator.vibrate(100);
+                }
+                
+                // Hide modal and clean up
+                const modalEl = document.getElementById('scannerModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) {
+                    modal.hide();
+                }
+                stopScanner();
+            },
+            (errorMessage) => {
+                // Ignore scanning failures
+            }
+        ).then(() => {
+            // Once running, load cameras list in background (if not already loaded) to populate cameraSelect dropdown
+            Html5Qrcode.getCameras().then(devices => {
+                if (devices && devices.length > 0) {
+                    const cameraSelect = document.getElementById('cameraSelect');
+                    cameraSelect.innerHTML = '';
+                    devices.forEach(device => {
+                        const option = document.createElement('option');
+                        option.value = device.id;
+                        option.text = device.label || `Kamera ${cameraSelect.length + 1}`;
+                        // If this is currently active camera, select it
+                        if (cameraId === device.id || (!cameraId && (device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('environment') || device.label.toLowerCase().includes('tył') || device.label.toLowerCase().includes('rear')))) {
+                            option.selected = true;
+                        }
+                        cameraSelect.appendChild(option);
+                    });
+                }
+            }).catch(e => console.log("Silent ignore cameras list", e));
+        }).catch(err => {
+            console.error("Nie można uruchomić kamery:", err);
+            alert("Nie można uruchomić kamery. Upewnij się, że udzieliłeś uprawnień do aparatu dla tej witryny.");
+        });
+    }
+
+    function switchCamera(cameraId) {
+        startCamera(cameraId);
+    }
+
+    function stopScanner() {
+        if (html5QrCode) {
+            if (html5QrCode.isScanning) {
+                html5QrCode.stop().then(() => {
+                    html5QrCode = null;
+                }).catch(err => {
+                    console.error("Błąd podczas zatrzymywania skanera:", err);
+                });
+            } else {
+                html5QrCode = null;
+            }
+        }
+    }
+    
+    // Clean up if modal is closed
+    document.getElementById('scannerModal').addEventListener('hidden.bs.modal', function () {
+        stopScanner();
+    });
   </script>
 </body>
 </html>
