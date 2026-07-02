@@ -312,7 +312,7 @@ try {
 
                 <!-- Uwagi -->
                 <?php
-                $predefined_notes = ["SPRAWNY", "NIESPRAWNY", "PĘKNIĘTA OBUDOWA", "USZKODZONA MATRYCA", "USZKODZONA KLAWIATURA / TOUCHPAD", "USZKODZONY PORT (USB/HDMI/ŁADOWANIA)", "BRAK ZASILACZA / AKCESORIÓW", "ŚLADY ZUŻYCIA (RYSY/OTARCIA)", "BATERIA DO WYMIANY"];
+                $predefined_notes = ["SPRAWNY", "NIESPRAWNY"];
                 $current_notes = $item['notes'] ?? '';
                 $is_custom_notes = ($current_notes !== '' && !in_array($current_notes, $predefined_notes, true));
                 ?>

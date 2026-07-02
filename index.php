@@ -370,13 +370,6 @@ try {
                     <option value="">-- Wybierz stan / uwagi (opcjonalnie) --</option>
                     <option value="SPRAWNY">SPRAWNY</option>
                     <option value="NIESPRAWNY">NIESPRAWNY</option>
-                    <option value="PĘKNIĘTA OBUDOWA">PĘKNIĘTA OBUDOWA</option>
-                    <option value="USZKODZONA MATRYCA">USZKODZONA MATRYCA</option>
-                    <option value="USZKODZONA KLAWIATURA / TOUCHPAD">USZKODZONA KLAWIATURA / TOUCHPAD</option>
-                    <option value="USZKODZONY PORT (USB/HDMI/ŁADOWANIA)">USZKODZONY PORT (USB/HDMI/ŁADOWANIA)</option>
-                    <option value="BRAK ZASILACZA / AKCESORIÓW">BRAK ZASILACZA / AKCESORIÓW</option>
-                    <option value="ŚLADY ZUŻYCIA (RYSY/OTARCIA)">ŚLADY ZUŻYCIA (RYSY/OTARCIA)</option>
-                    <option value="BATERIA DO WYMIANY">BATERIA DO WYMIANY</option>
                     <option value="custom">Inny (wpisz ręcznie)...</option>
                   </select>
                   <div class="mt-2 d-none" id="custom_notes_div">
