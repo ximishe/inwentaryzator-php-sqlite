@@ -44,7 +44,7 @@ if (!empty($where)) {
     $sql .= " WHERE " . implode(" AND ", $where);
 }
 
-$sql .= " ORDER BY i.created_at DESC";
+$sql .= " ORDER BY LENGTH(i.room_number) ASC, i.room_number ASC, i.created_at DESC";
 
 try {
     $stmt = db()->prepare($sql);

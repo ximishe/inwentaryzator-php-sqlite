@@ -169,7 +169,7 @@ if (!empty($where)) {
     $sql .= " WHERE " . implode(" AND ", $where);
 }
 
-$sql .= " ORDER BY i.created_at DESC";
+$sql .= " ORDER BY LENGTH(i.room_number) ASC, i.room_number ASC, i.created_at DESC";
 
 try {
     $stmt = db()->prepare($sql);
@@ -177,7 +177,8 @@ try {
     $items = $stmt->fetchAll();
 
     // Fetch filters lists
-    $rooms = db()->query("SELECT DISTINCT room_number FROM inventory WHERE room_number != '' ORDER BY room_number ASC")->fetchAll(PDO::FETCH_COLUMN);
+    $rooms = db()->query("SELECT DISTINCT room_number FROM inventory WHERE room_number != ''")->fetchAll(PDO::FETCH_COLUMN);
+    natsort($rooms);
     $device_types = db()->query("SELECT * FROM device_types ORDER BY name ASC")->fetchAll();
     $manufacturers = db()->query("SELECT * FROM manufacturers ORDER BY name ASC")->fetchAll();
 } catch (PDOException $e) {
