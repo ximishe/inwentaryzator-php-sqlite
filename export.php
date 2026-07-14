@@ -24,7 +24,7 @@ $where = [];
 $params = [];
 
 if ($search !== '') {
-    $where[] = "(i.serial_number LIKE :search OR i.inventory_number LIKE :search OR i.room_number LIKE :search OR i.notes LIKE :search)";
+    $where[] = "(i.serial_number LIKE :search OR i.inventory_number LIKE :search OR i.room_number LIKE :search OR i.notes LIKE :search OR i.model LIKE :search)";
     $params[':search'] = '%' . $search . '%';
 }
 if ($filter_room !== '') {
@@ -73,6 +73,7 @@ fputcsv($output, [
     'Numer pokoju',
     'Typ urządzenia',
     'Producent',
+    'Model',
     'Numer seryjny',
     'Numer inwentarzowy',
     'Uwagi',
@@ -87,6 +88,7 @@ foreach ($items as $item) {
         $item['room_number'],
         $item['device_type_name'] ?? 'Nieokreślony',
         $item['manufacturer_name'] ?? 'Nieokreślony',
+        $item['model'] ?? '',
         $item['serial_number'],
         $item['inventory_number'],
         $item['notes'] ?? '',

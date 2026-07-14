@@ -22,6 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $room_number = trim((string)($_POST['room_number'] ?? ''));
         $device_type_id = $_POST['device_type_id'] ?? '';
         $manufacturer_id = $_POST['manufacturer_id'] ?? '';
+        $model = trim((string)($_POST['model'] ?? ''));
         $serial_number = trim((string)($_POST['serial_number'] ?? ''));
         $inventory_number = trim((string)($_POST['inventory_number'] ?? ''));
         $notes_select = $_POST['notes_select'] ?? '';
@@ -83,13 +84,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 // Insert inventory item
                 $stmt = db()->prepare("
-                    INSERT INTO inventory (room_number, device_type_id, manufacturer_id, serial_number, inventory_number, notes, created_by)
-                    VALUES (:room, :type, :manufacturer, :serial, :inventory, :notes, :created_by)
+                    INSERT INTO inventory (room_number, device_type_id, manufacturer_id, model, serial_number, inventory_number, notes, created_by)
+                    VALUES (:room, :type, :manufacturer, :model, :serial, :inventory, :notes, :created_by)
                 ");
                 $stmt->execute([
                     ':room' => $room_number,
                     ':type' => $device_type_id,
                     ':manufacturer' => $manufacturer_id,
+                    ':model' => $model !== '' ? $model : null,
                     ':serial' => $serial_number,
                     ':inventory' => $inventory_number,
                     ':notes' => $notes !== '' ? $notes : null,
@@ -147,7 +149,7 @@ $where = [];
 $params = [];
 
 if ($search !== '') {
-    $where[] = "(i.serial_number LIKE :search OR i.inventory_number LIKE :search OR i.room_number LIKE :search OR i.notes LIKE :search)";
+    $where[] = "(i.serial_number LIKE :search OR i.inventory_number LIKE :search OR i.room_number LIKE :search OR i.notes LIKE :search OR i.model LIKE :search)";
     $params[':search'] = '%' . $search . '%';
 }
 if ($filter_room !== '') {
@@ -345,6 +347,12 @@ try {
                   </div>
                 </div>
 
+                <!-- Model -->
+                <div class="col-md-6 mb-3">
+                  <label for="model" class="form-label small fw-semibold">Model</label>
+                  <input type="text" class="form-control form-control-sm" id="model" name="model" placeholder="Wpisz model ręcznie">
+                </div>
+
                 <!-- Numer seryjny -->
                 <div class="col-md-6 mb-3">
                   <label for="serial_number" class="form-label small fw-semibold">Numer seryjny</label>
@@ -460,6 +468,7 @@ try {
                   </div>
               </div>
               <h6 class="fw-bold card-title mb-1"><?= htmlspecialchars($item['device_type_name'] ?? 'Nieokreślony') ?> - <?= htmlspecialchars($item['manufacturer_name'] ?? 'Nieokreślony') ?></h6>
+              <div class="small mb-1"><strong>Model:</strong> <span class="text-dark"><?= htmlspecialchars($item['model'] ?? '-') ?></span></div>
               <div class="small mb-1"><strong>S/N:</strong> <code class="text-dark"><?= htmlspecialchars($item['serial_number']) ?></code></div>
               <div class="small mb-1"><strong>Inw:</strong> <code><?= htmlspecialchars($item['inventory_number']) ?></code></div>
               <?php if ($item['notes']): ?>
@@ -486,6 +495,7 @@ try {
                 <th>Pokój</th>
                 <th>Typ urządzenia</th>
                 <th>Producent</th>
+                <th>Model</th>
                 <th>Numer seryjny</th>
                 <th>Numer inwentarzowy</th>
                 <th>Uwagi</th>
@@ -504,6 +514,7 @@ try {
                   <td><strong><?= htmlspecialchars($item['room_number']) ?></strong></td>
                   <td><?= htmlspecialchars($item['device_type_name'] ?? 'Nieokreślony') ?></td>
                   <td><?= htmlspecialchars($item['manufacturer_name'] ?? 'Nieokreślony') ?></td>
+                  <td><?= htmlspecialchars($item['model'] ?? '-') ?></td>
                   <td><code class="text-dark"><?= htmlspecialchars($item['serial_number']) ?></code></td>
                   <td><code><?= htmlspecialchars($item['inventory_number']) ?></code></td>
                   <td class="text-muted" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="<?= htmlspecialchars($item['notes'] ?? '') ?>"><?= htmlspecialchars($item['notes'] ?? '') ?></td>

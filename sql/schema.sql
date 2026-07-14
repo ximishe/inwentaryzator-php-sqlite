@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS inventory (
   room_number TEXT NOT NULL,
   device_type_id INTEGER DEFAULT NULL,
   manufacturer_id INTEGER DEFAULT NULL,
+  model TEXT DEFAULT NULL,
   serial_number TEXT NOT NULL,
   inventory_number TEXT NOT NULL,
   notes TEXT DEFAULT NULL,

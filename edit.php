@@ -39,6 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $room_number = trim((string)($_POST['room_number'] ?? ''));
     $device_type_id = $_POST['device_type_id'] ?? '';
     $manufacturer_id = $_POST['manufacturer_id'] ?? '';
+    $model = trim((string)($_POST['model'] ?? ''));
     $serial_number = trim((string)($_POST['serial_number'] ?? ''));
     $inventory_number = trim((string)($_POST['inventory_number'] ?? ''));
     $notes_select = $_POST['notes_select'] ?? '';
@@ -102,6 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 SET room_number = :room, 
                     device_type_id = :type, 
                     manufacturer_id = :manufacturer, 
+                    model = :model,
                     serial_number = :serial, 
                     inventory_number = :inventory, 
                     notes = :notes,
@@ -112,6 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':room' => $room_number,
                 ':type' => $device_type_id,
                 ':manufacturer' => $manufacturer_id,
+                ':model' => $model !== '' ? $model : null,
                 ':serial' => $serial_number,
                 ':inventory' => $inventory_number,
                 ':notes' => $notes !== '' ? $notes : null,
@@ -290,6 +293,12 @@ try {
                   <div class="mt-2 d-none" id="custom_manufacturer_div">
                     <input type="text" class="form-control form-control-sm border-danger" id="manufacturer_custom" name="manufacturer_custom" placeholder="Wpisz producenta">
                   </div>
+                </div>
+
+                <!-- Model -->
+                <div class="col-md-6 mb-3">
+                  <label for="model" class="form-label small fw-semibold">Model</label>
+                  <input type="text" class="form-control form-control-sm" id="model" name="model" value="<?= htmlspecialchars($item['model'] ?? '') ?>" placeholder="Wpisz model ręcznie">
                 </div>
 
                 <!-- Numer seryjny -->

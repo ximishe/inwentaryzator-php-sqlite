@@ -25,6 +25,12 @@ function db(): PDO {
         // Enforce foreign key constraints in SQLite
         $pdo->exec('PRAGMA foreign_keys = ON;');
 
+        // Auto-migration for 'model' column
+        $cols = $pdo->query("PRAGMA table_info(inventory)")->fetchAll(PDO::FETCH_COLUMN, 1);
+        if (!in_array('model', $cols)) {
+            $pdo->exec("ALTER TABLE inventory ADD COLUMN model TEXT DEFAULT NULL");
+        }
+
         // Initialize schema if database is new
         if (!$db_exists) {
             $schema_file = __DIR__ . '/../sql/schema.sql';
