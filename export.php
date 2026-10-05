@@ -9,42 +9,35 @@ require_login();
 // Fetch search and filter values from GET (just like in index.php)
 $search = trim((string)($_GET['q'] ?? ''));
 $filter_room = trim((string)($_GET['room'] ?? ''));
-$filter_type = trim((string)($_GET['type'] ?? ''));
-$filter_manufacturer = trim((string)($_GET['manufacturer'] ?? ''));
+$filter_status = trim((string)($_GET['status'] ?? ''));
 
 $sql = "
-    SELECT i.*, m.name AS manufacturer_name, d.name AS device_type_name, u.username AS creator_name 
-    FROM inventory i 
-    LEFT JOIN manufacturers m ON i.manufacturer_id = m.id 
-    LEFT JOIN device_types d ON i.device_type_id = d.id 
-    JOIN users u ON i.created_by = u.id
+    SELECT d.*, u.first_name, u.last_name, u.username 
+    FROM device d 
+    LEFT JOIN users u ON d.user_id = u.id
 ";
 
 $where = [];
 $params = [];
 
 if ($search !== '') {
-    $where[] = "(i.serial_number LIKE :search OR i.inventory_number LIKE :search OR i.room_number LIKE :search OR i.notes LIKE :search OR i.model LIKE :search)";
+    $where[] = "(d.serial_number LIKE :search OR d.asset_number LIKE :search OR d.room LIKE :search OR d.model LIKE :search OR d.manufacturer LIKE :search)";
     $params[':search'] = '%' . $search . '%';
 }
 if ($filter_room !== '') {
-    $where[] = "i.room_number = :room";
+    $where[] = "d.room = :room";
     $params[':room'] = $filter_room;
 }
-if ($filter_type !== '') {
-    $where[] = "i.device_type_id = :type";
-    $params[':type'] = (int)$filter_type;
-}
-if ($filter_manufacturer !== '') {
-    $where[] = "i.manufacturer_id = :manufacturer";
-    $params[':manufacturer'] = (int)$filter_manufacturer;
+if ($filter_status !== '') {
+    $where[] = "d.status = :status";
+    $params[':status'] = $filter_status;
 }
 
 if (!empty($where)) {
     $sql .= " WHERE " . implode(" AND ", $where);
 }
 
-$sql .= " ORDER BY LENGTH(i.room_number) ASC, i.room_number ASC, i.created_at DESC";
+$sql .= " ORDER BY d.created_at DESC";
 
 try {
     $stmt = db()->prepare($sql);
@@ -69,30 +62,36 @@ fwrite($output, "\xEF\xBB\xBF");
 
 // Header row
 fputcsv($output, [
-    'ID',
-    'Numer pokoju',
-    'Typ urządzenia',
+    'Numer inwentarzowy',
     'Producent',
     'Model',
     'Numer seryjny',
-    'Numer inwentarzowy',
-    'Uwagi',
-    'Dodane przez',
+    'Data zakupu',
+    'Cena zakupu',
+    'Nr faktury',
+    'Gwarancja do',
+    'Przypisany pracownik',
+    'Pokój / Lokalizacja',
+    'Status',
+    'Opis / Uwagi',
     'Data utworzenia'
 ], ';'); // Semicolon is standard for Polish/European regional settings in Excel
 
 // Data rows
 foreach ($items as $item) {
     fputcsv($output, [
-        $item['id'],
-        $item['room_number'],
-        $item['device_type_name'] ?? 'Nieokreślony',
-        $item['manufacturer_name'] ?? 'Nieokreślony',
+        $item['asset_number'],
+        $item['manufacturer'] ?? '',
         $item['model'] ?? '',
-        $item['serial_number'],
-        $item['inventory_number'],
-        $item['notes'] ?? '',
-        $item['creator_name'],
+        $item['serial_number'] ?? '',
+        $item['purchase_date'] ?? '',
+        $item['purchase_price'] ?? '',
+        $item['invoice'] ?? '',
+        $item['warranty_until'] ?? '',
+        $item['user_id'] ? ($item['first_name'] . ' ' . $item['last_name'] . ' (' . $item['username'] . ')') : '',
+        $item['room'] ?? '',
+        $item['status'] ?? '',
+        $item['description'] ?? '',
         $item['created_at']
     ], ';');
 }

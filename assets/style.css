@@ -1,0 +1,185 @@
+﻿@charset "UTF-8";
+
+/* =========================================
+   GLOBAL STYLES (INVENTARYZATOR)
+========================================= */
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background-color: #121212; /* Deep dark background */
+}
+
+/* Navbar overrides for dark mode */
+.navbar {
+  background-color: #18181b !important; /* Zinc 900 */
+  border-bottom: 1px solid #27272a !important; /* Zinc 800 */
+  border-radius: 0 0 16px 16px;
+}
+
+/* Card aesthetics */
+.card {
+  border-radius: 16px;
+  border: 1px solid #27272a;
+  background-color: #18181b !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+/* =========================================
+   BUTTON STYLES (PREMIUM DARK AESTHETIC)
+========================================= */
+.btn {
+  border-radius: 8px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  transition: all 0.2s ease-in-out;
+  border: 1px solid transparent;
+}
+
+/* Primary - Subtle Zinc */
+.btn-primary {
+  background-color: #3f3f46 !important; /* Zinc 700 */
+  border-color: #52525b !important; /* Zinc 600 */
+  color: #f4f4f5 !important; /* Zinc 50 */
+}
+.btn-primary:hover, .btn-primary:focus {
+  background-color: #52525b !important;
+  border-color: #71717a !important;
+  color: #ffffff !important;
+}
+
+/* Secondary - Darker Zinc */
+.btn-secondary {
+  background-color: #27272a !important; /* Zinc 800 */
+  border-color: #3f3f46 !important;
+  color: #d4d4d8 !important; /* Zinc 300 */
+}
+.btn-secondary:hover, .btn-secondary:focus {
+  background-color: #3f3f46 !important;
+  border-color: #52525b !important;
+  color: #ffffff !important;
+}
+
+/* Success - Subdued Emerald */
+.btn-success {
+  background-color: #064e3b !important; /* Emerald 900 */
+  border-color: #065f46 !important;
+  color: #34d399 !important; /* Emerald 400 */
+}
+.btn-success:hover, .btn-success:focus {
+  background-color: #065f46 !important;
+  border-color: #047857 !important;
+  color: #6ee7b7 !important;
+}
+
+/* Danger - Subdued Red */
+.btn-danger {
+  background-color: #7f1d1d !important; /* Red 900 */
+  border-color: #991b1b !important;
+  color: #fca5a5 !important; /* Red 300 */
+}
+.btn-danger:hover, .btn-danger:focus {
+  background-color: #991b1b !important;
+  border-color: #b91c1c !important;
+  color: #fecaca !important;
+}
+
+/* Outline Secondary - used in mobile cards */
+.btn-outline-secondary {
+  background-color: transparent !important;
+  border-color: #3f3f46 !important;
+  color: #a1a1aa !important;
+}
+.btn-outline-secondary:hover {
+  background-color: #27272a !important;
+  color: #ffffff !important;
+}
+
+/* Table overrides for sleeker look */
+.table-dark {
+  --bs-table-bg: #18181b;
+  --bs-table-striped-bg: #27272a;
+  --bs-table-hover-bg: #27272a;
+  border-color: #27272a;
+}
+.table-dark th {
+  color: #a1a1aa; /* Zinc 400 */
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
+}
+
+/* =========================================
+   DASHBOARD / TIMELINE (edit.php / index.php)
+========================================= */
+.timeline {
+  position: relative;
+  border-left: 2px solid #3f3f46; /* Zinc 700 */
+  padding-left: 1.5rem;
+  margin-left: 1rem;
+}
+.timeline-item {
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+.timeline-icon {
+  position: absolute;
+  left: -2.1rem;
+  top: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  background-color: #52525b; /* Zinc 600 */
+  border: 3px solid #18181b; /* Card bg */
+  box-shadow: 0 0 0 2px #3f3f46;
+}
+.timeline-icon.bg-success {
+  background-color: #059669 !important;
+  box-shadow: 0 0 0 2px #064e3b;
+}
+
+.clickable-row {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.clickable-row:hover {
+  background-color: #27272a !important;
+}
+
+/* =========================================
+   LOGIN PAGE (login.php)
+========================================= */
+body.login-page {
+  background: radial-gradient(circle at 50% 50%, #18181b 0%, #09090b 100%);
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 15px;
+}
+
+body.login-page .login-card {
+  max-width: 400px;
+  width: 100%;
+  border-radius: 24px;
+  border: 1px solid #27272a;
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.7);
+  background-color: #18181b;
+  backdrop-filter: blur(10px);
+}
+
+body.login-page .form-control {
+  border-radius: 8px;
+  padding: 0.7rem 1rem;
+  background-color: #27272a;
+  border: 1px solid #3f3f46;
+  color: #f4f4f5;
+}
+
+body.login-page .form-control:focus {
+  border-color: #71717a;
+  background-color: #27272a;
+  box-shadow: 0 0 0 3px rgba(113, 113, 122, 0.2);
+  color: #ffffff;
+}

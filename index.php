@@ -17,85 +17,60 @@ $ok = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = (string)($_POST['action'] ?? '');
 
-    // Add new inventory item
-    if ($action === 'create_item') {
-        $room_number = trim((string)($_POST['room_number'] ?? ''));
-        $device_type_id = $_POST['device_type_id'] ?? '';
-        $manufacturer_id = $_POST['manufacturer_id'] ?? '';
+    // Add new device
+    if ($action === 'create_device') {
+        $asset_number = trim((string)($_POST['asset_number'] ?? ''));
+        $manufacturer = trim((string)($_POST['manufacturer'] ?? ''));
         $model = trim((string)($_POST['model'] ?? ''));
         $serial_number = trim((string)($_POST['serial_number'] ?? ''));
-        $inventory_number = trim((string)($_POST['inventory_number'] ?? ''));
-        $notes_select = $_POST['notes_select'] ?? '';
-        if ($notes_select === 'custom') {
-            $notes = trim((string)($_POST['notes_custom'] ?? ''));
-        } else {
-            $notes = trim((string)$notes_select);
-        }
+        $purchase_date = trim((string)($_POST['purchase_date'] ?? ''));
+        $purchase_price = (float)($_POST['purchase_price'] ?? 0);
+        $invoice = trim((string)($_POST['invoice'] ?? ''));
+        $warranty_until = trim((string)($_POST['warranty_until'] ?? ''));
+        $assigned_user_id = (int)($_POST['assigned_user_id'] ?? 0);
+        $room = trim((string)($_POST['room'] ?? ''));
+        $status = trim((string)($_POST['status'] ?? 'ACTIVE'));
+        $description = trim((string)($_POST['description'] ?? ''));
 
-        if ($room_number === '') {
-            $err = 'Wymagane jest pole: Numer pokoju.';
+        if ($asset_number === '') {
+            $err = 'Wymagane jest pole: Numer inwentarzowy.';
         } else {
             try {
                 db()->beginTransaction();
 
-                // Handle custom device type
-                if ($device_type_id === 'custom') {
-                    $custom_type = trim((string)($_POST['device_type_custom'] ?? ''));
-                    if ($custom_type === '') {
-                        throw new Exception('Wpisz własny typ urządzenia.');
-                    }
-                    
-                    // Check duplicate case-insensitive
-                    $stmt = db()->prepare("SELECT id FROM device_types WHERE LOWER(name) = LOWER(:name) LIMIT 1");
-                    $stmt->execute([':name' => $custom_type]);
-                    $row = $stmt->fetch();
-                    if ($row) {
-                        $device_type_id = (int)$row['id'];
-                    } else {
-                        $insert = db()->prepare("INSERT INTO device_types (name) VALUES (:name)");
-                        $insert->execute([':name' => $custom_type]);
-                        $device_type_id = (int)db()->lastInsertId();
-                    }
-                } else {
-                    $device_type_id = $device_type_id !== '' ? (int)$device_type_id : null;
-                }
-
-                // Handle custom manufacturer
-                if ($manufacturer_id === 'custom') {
-                    $custom_man = trim((string)($_POST['manufacturer_custom'] ?? ''));
-                    if ($custom_man === '') {
-                        throw new Exception('Wpisz własnego producenta.');
-                    }
-
-                    // Check duplicate case-insensitive
-                    $stmt = db()->prepare("SELECT id FROM manufacturers WHERE LOWER(name) = LOWER(:name) LIMIT 1");
-                    $stmt->execute([':name' => $custom_man]);
-                    $row = $stmt->fetch();
-                    if ($row) {
-                        $manufacturer_id = (int)$row['id'];
-                    } else {
-                        $insert = db()->prepare("INSERT INTO manufacturers (name) VALUES (:name)");
-                        $insert->execute([':name' => $custom_man]);
-                        $manufacturer_id = (int)db()->lastInsertId();
-                    }
-                } else {
-                    $manufacturer_id = $manufacturer_id !== '' ? (int)$manufacturer_id : null;
-                }
-
-                // Insert inventory item
+                // Insert device
                 $stmt = db()->prepare("
-                    INSERT INTO inventory (room_number, device_type_id, manufacturer_id, model, serial_number, inventory_number, notes, created_by)
-                    VALUES (:room, :type, :manufacturer, :model, :serial, :inventory, :notes, :created_by)
+                    INSERT INTO device (asset_number, manufacturer, model, serial_number, purchase_date, purchase_price, invoice, warranty_until, user_id, room, status, description)
+                    VALUES (:asset_number, :manufacturer, :model, :serial_number, :purchase_date, :purchase_price, :invoice, :warranty_until, :user_id, :room, :status, :description)
                 ");
                 $stmt->execute([
-                    ':room' => $room_number,
-                    ':type' => $device_type_id,
-                    ':manufacturer' => $manufacturer_id,
+                    ':asset_number' => $asset_number,
+                    ':manufacturer' => $manufacturer !== '' ? $manufacturer : null,
                     ':model' => $model !== '' ? $model : null,
-                    ':serial' => $serial_number,
-                    ':inventory' => $inventory_number,
-                    ':notes' => $notes !== '' ? $notes : null,
-                    ':created_by' => $user_id
+                    ':serial_number' => $serial_number !== '' ? $serial_number : null,
+                    ':purchase_date' => $purchase_date !== '' ? $purchase_date : null,
+                    ':purchase_price' => $purchase_price > 0 ? $purchase_price : null,
+                    ':invoice' => $invoice !== '' ? $invoice : null,
+                    ':warranty_until' => $warranty_until !== '' ? $warranty_until : null,
+                    ':user_id' => $assigned_user_id > 0 ? $assigned_user_id : null,
+                    ':room' => $room !== '' ? $room : null,
+                    ':status' => $status,
+                    ':description' => $description !== '' ? $description : null,
+                ]);
+
+                $new_device_id = (int)db()->lastInsertId();
+
+                // Add history record: CREATE
+                $hist_stmt = db()->prepare("
+                    INSERT INTO device_history (device_id, event_type, new_user_id, new_room, new_status, description, changed_by)
+                    VALUES (:device_id, 'CREATE', :new_user_id, :new_room, :new_status, 'Utworzono urządzenie w systemie.', :changed_by)
+                ");
+                $hist_stmt->execute([
+                    ':device_id' => $new_device_id,
+                    ':new_user_id' => $assigned_user_id > 0 ? $assigned_user_id : null,
+                    ':new_room' => $room !== '' ? $room : null,
+                    ':new_status' => $status,
+                    ':changed_by' => $username
                 ]);
 
                 db()->commit();
@@ -108,68 +83,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     }
-
-    // Delete item
-    if ($action === 'delete') {
-        $item_id = (int)($_POST['item_id'] ?? 0);
-        if ($item_id > 0) {
-            try {
-                $stmt = db()->prepare("DELETE FROM inventory WHERE id = :id");
-                $stmt->execute([':id' => $item_id]);
-                $affected = $stmt->rowCount();
-                
-                if ($affected > 0) {
-                    $ok = 'Wpis z inwentarza został usunięty.';
-                } else {
-                    $err = 'Wpis nie istnieje lub nie można go usunąć.';
-                }
-            } catch (PDOException $e) {
-                $err = 'Błąd usuwania: ' . $e->getMessage();
-            }
-        }
-    }
 }
 
 // Fetch search and filter values from GET
 $search = trim((string)($_GET['q'] ?? ''));
 $filter_room = trim((string)($_GET['room'] ?? ''));
-$filter_type = trim((string)($_GET['type'] ?? ''));
-$filter_manufacturer = trim((string)($_GET['manufacturer'] ?? ''));
+$filter_status = trim((string)($_GET['status'] ?? ''));
+$filter_asset = trim((string)($_GET['asset'] ?? ''));
+$filter_model = trim((string)($_GET['model'] ?? ''));
+$filter_sn = trim((string)($_GET['sn'] ?? ''));
+$filter_user = trim((string)($_GET['user'] ?? ''));
 
 // SQL query construction
 $sql = "
-    SELECT i.*, m.name AS manufacturer_name, d.name AS device_type_name, u.username AS creator_name 
-    FROM inventory i 
-    LEFT JOIN manufacturers m ON i.manufacturer_id = m.id 
-    LEFT JOIN device_types d ON i.device_type_id = d.id 
-    JOIN users u ON i.created_by = u.id
+    SELECT d.*, u.first_name, u.last_name, u.username as u_login
+    FROM device d 
+    LEFT JOIN users u ON d.user_id = u.id
 ";
 
 $where = [];
 $params = [];
 
 if ($search !== '') {
-    $where[] = "(i.serial_number LIKE :search OR i.inventory_number LIKE :search OR i.room_number LIKE :search OR i.notes LIKE :search OR i.model LIKE :search)";
+    $where[] = "(d.serial_number LIKE :search OR d.asset_number LIKE :search OR d.room LIKE :search OR d.model LIKE :search OR d.manufacturer LIKE :search)";
     $params[':search'] = '%' . $search . '%';
 }
 if ($filter_room !== '') {
-    $where[] = "i.room_number = :room";
+    $where[] = "d.room = :room";
     $params[':room'] = $filter_room;
 }
-if ($filter_type !== '') {
-    $where[] = "i.device_type_id = :type";
-    $params[':type'] = (int)$filter_type;
+if ($filter_status !== '') {
+    $where[] = "d.status = :status";
+    $params[':status'] = $filter_status;
 }
-if ($filter_manufacturer !== '') {
-    $where[] = "i.manufacturer_id = :manufacturer";
-    $params[':manufacturer'] = (int)$filter_manufacturer;
+if ($filter_asset !== '') {
+    $where[] = "d.asset_number LIKE :asset";
+    $params[':asset'] = '%' . $filter_asset . '%';
+}
+if ($filter_model !== '') {
+    $where[] = "(d.model LIKE :model OR d.manufacturer LIKE :model)";
+    $params[':model'] = '%' . $filter_model . '%';
+}
+if ($filter_sn !== '') {
+    $where[] = "d.serial_number LIKE :sn";
+    $params[':sn'] = '%' . $filter_sn . '%';
+}
+if ($filter_user !== '') {
+    $where[] = "d.user_id = :user";
+    $params[':user'] = $filter_user;
 }
 
 if (!empty($where)) {
     $sql .= " WHERE " . implode(" AND ", $where);
 }
 
-$sql .= " ORDER BY LENGTH(i.room_number) ASC, i.room_number ASC, i.created_at DESC";
+$sql .= " ORDER BY d.created_at DESC";
 
 try {
     $stmt = db()->prepare($sql);
@@ -177,98 +145,62 @@ try {
     $items = $stmt->fetchAll();
 
     // Fetch filters lists
-    $rooms = db()->query("SELECT DISTINCT room_number FROM inventory WHERE room_number != ''")->fetchAll(PDO::FETCH_COLUMN);
+    $rooms = db()->query("SELECT DISTINCT room FROM device WHERE room IS NOT NULL AND room != ''")->fetchAll(PDO::FETCH_COLUMN);
     natsort($rooms);
-    $device_types = db()->query("SELECT * FROM device_types ORDER BY name ASC")->fetchAll();
-    $manufacturers = db()->query("SELECT * FROM manufacturers ORDER BY name ASC")->fetchAll();
+    $statuses = db()->query("SELECT DISTINCT status FROM device")->fetchAll(PDO::FETCH_COLUMN);
+    $all_users = db()->query("SELECT id, first_name, last_name, username FROM users WHERE role = 'user' ORDER BY last_name ASC")->fetchAll();
+
+    // Fetch history for displayed items
+    $history_by_device = [];
+    $device_ids = array_column($items, 'id');
+    if (!empty($device_ids)) {
+        $placeholders = implode(',', array_fill(0, count($device_ids), '?'));
+        $hist_stmt = db()->prepare("
+            SELECT h.*, 
+                   u1.first_name as o_fn, u1.last_name as o_ln, 
+                   u2.first_name as n_fn, u2.last_name as n_ln 
+            FROM device_history h
+            LEFT JOIN users u1 ON h.old_user_id = u1.id
+            LEFT JOIN users u2 ON h.new_user_id = u2.id
+            WHERE h.device_id IN ($placeholders) 
+            ORDER BY h.date DESC, h.id DESC
+        ");
+        $hist_stmt->execute($device_ids);
+        $all_history = $hist_stmt->fetchAll();
+        foreach ($all_history as $h) {
+            $history_by_device[$h['device_id']][] = $h;
+        }
+    }
+
 } catch (PDOException $e) {
     die('Błąd pobierania danych: ' . htmlspecialchars($e->getMessage()));
 }
 ?>
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="pl" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Panel Główny - Inwentaryzator Mobile</title>
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- HTML5 QR Code Library -->
-  <script src="https://unpkg.com/html5-qrcode"></script>
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   
-  <style>
-    body {
-      font-family: 'Outfit', sans-serif;
-      background-color: #f3f4f6;
-      color: #1f2937;
-    }
-    .navbar {
-      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%) !important;
-      border-radius: 0 0 16px 16px;
-    }
-    .card {
-      border-radius: 16px;
-      border: none;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .btn {
-      border-radius: 10px;
-      font-weight: 500;
-      transition: all 0.2s;
-    }
-    .btn-primary {
-      background-color: #2563eb;
-      border-color: #2563eb;
-    }
-    .btn-primary:hover {
-      background-color: #1d4ed8;
-      border-color: #1d4ed8;
-    }
-    .form-control, .form-select {
-      border-radius: 10px;
-      padding: 0.5rem 0.75rem;
-      border: 1px solid #d1d5db;
-    }
-    .form-control:focus, .form-select:focus {
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-    }
-    .accordion-item {
-      border-radius: 16px !important;
-      overflow: hidden;
-    }
-    .accordion-button {
-      border-radius: 16px !important;
-    }
-    #scanner-container {
-      width: 100%;
-      max-width: 450px;
-      margin: 0 auto;
-      border-radius: 12px;
-      overflow: hidden;
-      background-color: #000;
-      position: relative;
-    }
-    #reader video {
-      object-fit: cover !important;
-    }
-  </style>
+  <link rel="stylesheet" href="assets/style.css">
 </head>
-<body class="bg-light">
+<body>
 
-  <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4 shadow-sm">
-    <div class="container">
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow-sm">
+    <div class="container d-flex justify-content-between align-items-center">
       <a class="navbar-brand fw-bold" href="index.php">Inwentaryzator</a>
       <div class="d-flex align-items-center text-white">
         <span class="me-3 d-none d-sm-inline">Witaj, <strong><?= htmlspecialchars($username) ?></strong></span>
         <?php if ($user_role === 'admin'): ?>
           <a href="users.php" class="btn btn-outline-light btn-sm me-2">Użytkownicy</a>
+          <a href="types.php" class="btn btn-outline-info btn-sm me-2">Struktura bazy</a>
         <?php endif; ?>
         <a href="logout.php" class="btn btn-danger btn-sm">Wyloguj</a>
       </div>
@@ -277,208 +209,338 @@ try {
 
   <div class="container pb-5">
     
-    <!-- Toast notifications -->
     <?php if ($err): ?>
       <div class="alert alert-danger alert-dismissible fade show" role="alert">
         <?= htmlspecialchars($err) ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Zamknij"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
       </div>
     <?php endif; ?>
     <?php if ($ok): ?>
       <div class="alert alert-success alert-dismissible fade show" role="alert">
         <?= htmlspecialchars($ok) ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Zamknij"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
       </div>
     <?php endif; ?>
 
-    <!-- Collapsible ADD inventory Form -->
-    <div class="accordion mb-4" id="accordionAdd">
-      <div class="accordion-item border-0 shadow-sm rounded">
-        <h2 class="accordion-header" id="headingAdd">
-          <button class="accordion-button fw-bold text-primary bg-white rounded" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAdd" aria-expanded="true" aria-controls="collapseAdd">
-            📋 Dodaj nowy sprzęt do inwentarza
-          </button>
-        </h2>
-        <div id="collapseAdd" class="accordion-collapse collapse show" aria-labelledby="headingAdd" data-bs-parent="#accordionAdd">
-          <div class="accordion-body bg-white">
-            <form method="POST" action="index.php">
-              <input type="hidden" name="action" value="create_item">
-              
-              <!-- General Scan Button -->
-              <div class="mb-3">
-                <button type="button" class="btn btn-primary w-100 py-3 d-flex align-items-center justify-content-center shadow-sm" onclick="startScanner('auto')" style="border-radius: 12px; font-size: 1.05rem; letter-spacing: 0.5px;">
-                  <span class="fs-4 me-2">📷</span> <strong>SKANUJ TABLICZKĘ / KOD</strong>
-                </button>
-              </div>
-
-              <div class="row">
-                <!-- Numer pokoju -->
-                <div class="col-md-6 mb-3">
-                  <label for="room_number" class="form-label small fw-semibold">Numer pokoju</label>
-                  <input type="text" class="form-control form-control-sm" id="room_number" name="room_number" required placeholder="np. P102, Magazyn A">
-                </div>
-
-                <!-- Typ urządzenia -->
-                <div class="col-md-6 mb-3">
-                  <label for="device_type_id" class="form-label small fw-semibold">Typ urządzenia</label>
-                  <select class="form-select form-select-sm" id="device_type_id" name="device_type_id" onchange="toggleCustomInput('device_type_id', 'custom_device_type_div', 'device_type_custom')" required>
-                    <option value="">-- Wybierz typ --</option>
-                    <?php foreach ($device_types as $d): ?>
-                      <option value="<?= $d['id'] ?>"><?= htmlspecialchars($d['name']) ?></option>
-                    <?php endforeach; ?>
-                    <option value="custom">Inny (wpisz ręcznie)...</option>
-                  </select>
-                  <div class="mt-2 d-none" id="custom_device_type_div">
-                    <input type="text" class="form-control form-control-sm border-danger" id="device_type_custom" name="device_type_custom" placeholder="Wpisz typ urządzenia">
-                  </div>
-                </div>
-
-                <!-- Producent -->
-                <div class="col-md-6 mb-3">
-                  <label for="manufacturer_id" class="form-label small fw-semibold">Producent</label>
-                  <select class="form-select form-select-sm" id="manufacturer_id" name="manufacturer_id" onchange="toggleCustomInput('manufacturer_id', 'custom_manufacturer_div', 'manufacturer_custom')" required>
-                    <option value="">-- Wybierz producenta --</option>
-                    <?php foreach ($manufacturers as $m): ?>
-                      <option value="<?= $m['id'] ?>"><?= htmlspecialchars($m['name']) ?></option>
-                    <?php endforeach; ?>
-                    <option value="custom">Inny (wpisz ręcznie)...</option>
-                  </select>
-                  <div class="mt-2 d-none" id="custom_manufacturer_div">
-                    <input type="text" class="form-control form-control-sm border-danger" id="manufacturer_custom" name="manufacturer_custom" placeholder="Wpisz producenta">
-                  </div>
-                </div>
-
-                <!-- Model -->
-                <div class="col-md-6 mb-3">
-                  <label for="model" class="form-label small fw-semibold">Model</label>
-                  <input type="text" class="form-control form-control-sm" id="model" name="model" placeholder="Wpisz model ręcznie">
-                </div>
-
-                <!-- Numer seryjny -->
-                <div class="col-md-6 mb-3">
-                  <label for="serial_number" class="form-label small fw-semibold">Numer seryjny</label>
-                  <div class="input-group input-group-sm">
-                    <input type="text" class="form-control form-control-sm" id="serial_number" name="serial_number" placeholder="np. S/N, Service Tag">
-                    <button class="btn btn-outline-primary" type="button" onclick="startScanner('serial_number')">📷 Skanuj</button>
-                  </div>
-                </div>
-
-                <!-- Numer inwentarzowy -->
-                <div class="col-md-6 mb-3">
-                  <label for="inventory_number" class="form-label small fw-semibold">Numer inwentarzowy</label>
-                  <div class="input-group input-group-sm">
-                    <input type="text" class="form-control form-control-sm" id="inventory_number" name="inventory_number" placeholder="np. INW/2026/001">
-                    <button class="btn btn-outline-primary" type="button" onclick="startScanner('inventory_number')">📷 Skanuj</button>
-                  </div>
-                </div>
-
-                <!-- Uwagi -->
-                <div class="col-md-6 mb-3">
-                  <label for="notes_select" class="form-label small fw-semibold">Stan / uwagi</label>
-                  <select class="form-select form-select-sm" id="notes_select" name="notes_select" onchange="toggleCustomInput('notes_select', 'custom_notes_div', 'notes_custom')">
-                    <option value="">-- Wybierz stan / uwagi (opcjonalnie) --</option>
-                    <option value="SPRAWNY">SPRAWNY</option>
-                    <option value="NIESPRAWNY">NIESPRAWNY</option>
-                    <option value="custom">Inny (wpisz ręcznie)...</option>
-                  </select>
-                  <div class="mt-2 d-none" id="custom_notes_div">
-                    <textarea class="form-control form-control-sm border-danger" id="notes_custom" name="notes_custom" rows="2" placeholder="Wpisz inne uwagi..."></textarea>
-                  </div>
-                </div>
-              </div>
-
-              <div class="text-end">
-                <button type="submit" class="btn btn-primary btn-sm px-4 py-2">💾 Zapisz urządzenie</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
+    <!-- Top Action Bar -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h3 class="fw-bold mb-0">Dashboard sprzętu</h3>
+      <button type="button" class="btn btn-primary fw-bold px-4 py-2" data-bs-toggle="modal" data-bs-target="#addDeviceModal">
+        + Dodaj sprzęt
+      </button>
     </div>
 
-    <!-- Filters and CRM export -->
+    <!-- Filters -->
     <div class="card border-0 shadow-sm mb-4">
       <div class="card-body">
-        <h5 class="card-title fw-bold text-primary mb-3">Filtrowanie i Eksport</h5>
-        <form method="GET" action="index.php" class="row g-2 mb-3">
-          <div class="col-6 col-sm-3">
-            <input type="text" name="q" class="form-control form-control-sm" placeholder="Szukaj..." value="<?= htmlspecialchars($search) ?>">
+        <form method="GET" action="index.php" class="row g-2 align-items-center">
+          <div class="col-12 col-md-5">
+            <input type="text" name="q" class="form-control form-control-sm" placeholder="Wyszukaj sprzęt (S/N, Inw, Model)..." value="<?= htmlspecialchars($search) ?>">
           </div>
-          <div class="col-6 col-sm-3">
+          <div class="col-6 col-md-3 d-md-none">
             <select name="room" class="form-select form-select-sm">
-              <option value="">Wszystkie pokoje</option>
+              <option value="">-- Filtruj po pokoju --</option>
               <?php foreach ($rooms as $room): ?>
-                <option value="<?= htmlspecialchars($room) ?>" <?= $filter_room === $room ? 'selected' : '' ?>><?= htmlspecialchars($room) ?></option>
+                <option value="<?= htmlspecialchars((string)$room) ?>" <?= $filter_room === (string)$room ? 'selected' : '' ?>><?= htmlspecialchars((string)$room) ?></option>
               <?php endforeach; ?>
             </select>
           </div>
-          <div class="col-6 col-sm-3">
-            <select name="type" class="form-select form-select-sm">
-              <option value="">Wszystkie typy</option>
-              <?php foreach ($device_types as $d): ?>
-                <option value="<?= $d['id'] ?>" <?= $filter_type === (string)$d['id'] ? 'selected' : '' ?>><?= htmlspecialchars($d['name']) ?></option>
+          <div class="col-6 col-md-3 d-md-none">
+            <select name="status" class="form-select form-select-sm">
+              <option value="">-- Filtruj po statusie --</option>
+              <?php foreach ($statuses as $st): ?>
+                <option value="<?= htmlspecialchars((string)$st) ?>" <?= $filter_status === (string)$st ? 'selected' : '' ?>><?= htmlspecialchars((string)$st) ?></option>
               <?php endforeach; ?>
             </select>
           </div>
-          <div class="col-6 col-sm-3">
-            <select name="manufacturer" class="form-select form-select-sm">
-              <option value="">Wszyscy producenci</option>
-              <?php foreach ($manufacturers as $m): ?>
-                <option value="<?= $m['id'] ?>" <?= $filter_manufacturer === (string)$m['id'] ? 'selected' : '' ?>><?= htmlspecialchars($m['name']) ?></option>
-              <?php endforeach; ?>
-            </select>
+          
+          <!-- Hidden inputs for desktop form submission to preserve filters -->
+          <div class="d-none d-md-block">
+            <?php if ($filter_room !== ''): ?><input type="hidden" name="room" value="<?= htmlspecialchars($filter_room) ?>"><?php endif; ?>
+            <?php if ($filter_status !== ''): ?><input type="hidden" name="status" value="<?= htmlspecialchars($filter_status) ?>"><?php endif; ?>
           </div>
-          <div class="col-12 text-end">
-            <?php if ($search !== '' || $filter_room !== '' || $filter_type !== '' || $filter_manufacturer !== ''): ?>
-              <a href="index.php" class="btn btn-secondary btn-sm me-1">Wyczyść</a>
+
+          <div class="col-12 col-md-7 text-end">
+            <?php if ($search !== '' || $filter_room !== '' || $filter_status !== ''): ?>
+              <a href="index.php" class="btn btn-secondary btn-sm">Wyczyść filtry</a>
             <?php endif; ?>
             <button type="submit" class="btn btn-primary btn-sm px-3">Szukaj</button>
-            <a href="export.php?<?= http_build_query($_GET) ?>" class="btn btn-success btn-sm px-3 ms-1" target="_blank">📥 Eksportuj do CRM (CSV)</a>
+            <a href="export.php?<?= http_build_query($_GET) ?>" class="btn btn-success btn-sm ms-1" target="_blank" title="Eksportuj CSV">📥</a>
           </div>
         </form>
       </div>
     </div>
 
-    <!-- Inventory list (Responsive design) -->
-    <h5 class="fw-bold text-primary mb-3">Zapisane urządzenia (<?= count($items) ?>)</h5>
-    
-    <!-- Grid for Cards on Mobile, Table on Desktop -->
+    <!-- Desktop list -->
+    <div class="card border-0 shadow-sm d-none d-md-block">
+      <div class="card-body p-0">
+        <div class="table-responsive" style="min-height: 400px;">
+          <form method="GET" action="index.php">
+            <!-- Wyszukiwarka z góry zostaje przekazana -->
+            <input type="hidden" name="q" value="<?= htmlspecialchars($search) ?>">
+            
+            <table class="table table-hover align-middle mb-0 small" style="margin-bottom: 0;">
+              <thead class="table-dark text-muted">
+                <tr>
+                  <!-- Status -->
+                  <th class="dropdown">
+                    <button class="btn btn-sm text-muted fw-bold dropdown-toggle p-0 border-0" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                      Status
+                    </button>
+                    <div class="dropdown-menu p-2 bg-dark border-secondary shadow" style="min-width: 200px;">
+                      <select name="status" class="form-select form-select-sm mb-2 bg-dark text-light border-secondary">
+                        <option value="">Wszystkie</option>
+                        <?php foreach ($statuses as $st): ?>
+                          <option value="<?= htmlspecialchars((string)$st) ?>" <?= $filter_status === (string)$st ? 'selected' : '' ?>><?= htmlspecialchars((string)$st) ?></option>
+                        <?php endforeach; ?>
+                      </select>
+                      <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm flex-grow-1">Filtruj</button>
+                        <a href="index.php" class="btn btn-outline-secondary btn-sm">X</a>
+                      </div>
+                    </div>
+                  </th>
+                  <!-- Nr inwentarzowy -->
+                  <th class="dropdown">
+                    <button class="btn btn-sm text-muted fw-bold dropdown-toggle p-0 border-0" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                      Nr inwentarzowy
+                    </button>
+                    <div class="dropdown-menu p-2 bg-dark border-secondary shadow" style="min-width: 200px;">
+                      <input type="text" name="asset" class="form-control form-control-sm mb-2 bg-dark text-light border-secondary" placeholder="Szukaj..." value="<?= htmlspecialchars($filter_asset) ?>">
+                      <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm flex-grow-1">Filtruj</button>
+                        <a href="index.php" class="btn btn-outline-secondary btn-sm">X</a>
+                      </div>
+                    </div>
+                  </th>
+                  <!-- Sprzęt (Producent / Model) -->
+                  <th class="dropdown">
+                    <button class="btn btn-sm text-muted fw-bold dropdown-toggle p-0 border-0" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                      Sprzęt (Producent / Model)
+                    </button>
+                    <div class="dropdown-menu p-2 bg-dark border-secondary shadow" style="min-width: 200px;">
+                      <input type="text" name="model" class="form-control form-control-sm mb-2 bg-dark text-light border-secondary" placeholder="Szukaj..." value="<?= htmlspecialchars($filter_model) ?>">
+                      <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm flex-grow-1">Filtruj</button>
+                        <a href="index.php" class="btn btn-outline-secondary btn-sm">X</a>
+                      </div>
+                    </div>
+                  </th>
+                  <!-- S/N -->
+                  <th class="dropdown">
+                    <button class="btn btn-sm text-muted fw-bold dropdown-toggle p-0 border-0" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                      S/N
+                    </button>
+                    <div class="dropdown-menu p-2 bg-dark border-secondary shadow" style="min-width: 200px;">
+                      <input type="text" name="sn" class="form-control form-control-sm mb-2 bg-dark text-light border-secondary" placeholder="Szukaj..." value="<?= htmlspecialchars($filter_sn) ?>">
+                      <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm flex-grow-1">Filtruj</button>
+                        <a href="index.php" class="btn btn-outline-secondary btn-sm">X</a>
+                      </div>
+                    </div>
+                  </th>
+                  <!-- Przypisany -->
+                  <th class="dropdown">
+                    <button class="btn btn-sm text-muted fw-bold dropdown-toggle p-0 border-0" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                      Przypisany
+                    </button>
+                    <div class="dropdown-menu p-2 bg-dark border-secondary shadow" style="min-width: 200px;">
+                      <select name="user" class="form-select form-select-sm mb-2 bg-dark text-light border-secondary">
+                        <option value="">Wszyscy</option>
+                        <option value="0" <?= $filter_user === '0' ? 'selected' : '' ?>>Brak (Magazyn)</option>
+                        <?php foreach ($all_users as $u): ?>
+                          <option value="<?= $u['id'] ?>" <?= $filter_user === (string)$u['id'] ? 'selected' : '' ?>><?= htmlspecialchars($u['first_name'] . ' ' . $u['last_name']) ?></option>
+                        <?php endforeach; ?>
+                      </select>
+                      <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm flex-grow-1">Filtruj</button>
+                        <a href="index.php" class="btn btn-outline-secondary btn-sm">X</a>
+                      </div>
+                    </div>
+                  </th>
+                  <!-- Lokalizacja -->
+                  <th class="dropdown">
+                    <button class="btn btn-sm text-muted fw-bold dropdown-toggle p-0 border-0" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                      Lokalizacja
+                    </button>
+                    <div class="dropdown-menu p-2 bg-dark border-secondary shadow border-end-0" style="min-width: 200px;">
+                      <select name="room" class="form-select form-select-sm mb-2 bg-dark text-light border-secondary">
+                        <option value="">Wszystkie</option>
+                        <?php foreach ($rooms as $room): ?>
+                          <option value="<?= htmlspecialchars((string)$room) ?>" <?= $filter_room === (string)$room ? 'selected' : '' ?>><?= htmlspecialchars((string)$room) ?></option>
+                        <?php endforeach; ?>
+                      </select>
+                      <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm flex-grow-1">Filtruj</button>
+                        <a href="index.php" class="btn btn-outline-secondary btn-sm">X</a>
+                      </div>
+                    </div>
+                  </th>
+                  <th class="text-end px-3">Opcje</th>
+                </tr>
+              </thead>
+            <tbody>
+              <?php if (empty($items)): ?>
+                <tr>
+                  <td colspan="7" class="text-center text-muted py-4">Brak sprzętu spełniającego kryteria.</td>
+                </tr>
+              <?php endif; ?>
+              <?php foreach ($items as $item): ?>
+                <tr class="clickable-row" title="Kliknij, aby rozwinąć historię">
+                  <td data-bs-toggle="collapse" data-bs-target="#history-<?= $item['id'] ?>">
+                    <?php if($item['status'] == 'ACTIVE') echo '<span class="badge bg-success">ACTIVE</span>';
+                          else if($item['status'] == 'WAREHOUSE') echo '<span class="badge bg-secondary">WAREHOUSE</span>';
+                          else if($item['status'] == 'REPAIR') echo '<span class="badge bg-warning text-dark">REPAIR</span>';
+                          else echo '<span class="badge bg-dark">'.$item['status'].'</span>'; ?>
+                  </td>
+                  <td data-bs-toggle="collapse" data-bs-target="#history-<?= $item['id'] ?>"><strong><?= htmlspecialchars($item['asset_number']) ?></strong></td>
+                  <td data-bs-toggle="collapse" data-bs-target="#history-<?= $item['id'] ?>">
+                    <div class="fw-bold"><?= htmlspecialchars((string)$item['manufacturer']) ?></div>
+                    <div class="text-muted" style="font-size: 0.85em;"><?= htmlspecialchars((string)$item['model']) ?></div>
+                  </td>
+                  <td data-bs-toggle="collapse" data-bs-target="#history-<?= $item['id'] ?>"><code class="text-light"><?= htmlspecialchars((string)$item['serial_number']) ?></code></td>
+                  <td data-bs-toggle="collapse" data-bs-target="#history-<?= $item['id'] ?>">
+                    <?php if($item['user_id']): ?>
+                      <?= htmlspecialchars($item['first_name'] . ' ' . $item['last_name']) ?>
+                      <div class="text-muted" style="font-size: 0.8em;">(<?= htmlspecialchars($item['u_login']) ?>)</div>
+                    <?php else: ?>
+                      <span class="text-muted">-</span>
+                    <?php endif; ?>
+                  </td>
+                  <td data-bs-toggle="collapse" data-bs-target="#history-<?= $item['id'] ?>"><span class="badge bg-info text-dark"><?= htmlspecialchars((string)$item['room']) ?: 'Brak' ?></span></td>
+                  <td class="text-end px-3">
+                    <a href="edit.php?id=<?= $item['id'] ?>" class="btn btn-primary btn-sm py-1">Edytuj sprzęt</a>
+                  </td>
+                </tr>
+                <!-- Expandable History Row -->
+                <tr class="collapse" id="history-<?= $item['id'] ?>" style="background-color: #121212;">
+                  <td colspan="7" class="p-0 border-0">
+                    <div class="p-4 m-2 rounded" style="background-color: #18181b; border: 1px solid #27272a;">
+                      <div class="row">
+                        <div class="col-md-5 border-end border-secondary border-opacity-25">
+                          <h6 class="text-uppercase text-muted fw-bold mb-3" style="font-size: 0.8rem; letter-spacing: 1px;">Szczegóły urządzenia</h6>
+                          <div class="d-flex flex-column gap-2 small">
+                            <div class="d-flex justify-content-between border-bottom border-secondary border-opacity-10 pb-1">
+                              <span class="text-muted">Opis / Uwagi:</span>
+                              <span class="text-light text-end"><?= htmlspecialchars((string)$item['description']) ?: '<span class="text-muted fst-italic">Brak</span>' ?></span>
+                            </div>
+                            <div class="d-flex justify-content-between border-bottom border-secondary border-opacity-10 pb-1">
+                              <span class="text-muted">Data zakupu:</span>
+                              <span class="text-light"><?= htmlspecialchars((string)$item['purchase_date']) ?: '<span class="text-muted fst-italic">Brak</span>' ?></span>
+                            </div>
+                            <div class="d-flex justify-content-between border-bottom border-secondary border-opacity-10 pb-1">
+                              <span class="text-muted">Cena zakupu:</span>
+                              <span class="text-light"><?= $item['purchase_price'] ? htmlspecialchars((string)$item['purchase_price']).' PLN' : '<span class="text-muted fst-italic">Brak</span>' ?></span>
+                            </div>
+                            <div class="d-flex justify-content-between border-bottom border-secondary border-opacity-10 pb-1">
+                              <span class="text-muted">Faktura:</span>
+                              <span class="text-light"><?= htmlspecialchars((string)$item['invoice']) ?: '<span class="text-muted fst-italic">Brak</span>' ?></span>
+                            </div>
+                            <div class="d-flex justify-content-between pb-1">
+                              <span class="text-muted">Gwarancja do:</span>
+                              <span class="text-light"><?= htmlspecialchars((string)$item['warranty_until']) ?: '<span class="text-muted fst-italic">Brak</span>' ?></span>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="col-md-7 ps-md-4">
+                          <h6 class="text-uppercase text-muted fw-bold mb-3" style="font-size: 0.8rem; letter-spacing: 1px;">Historia wpisów</h6>
+                          <div class="timeline pe-2" style="max-height: 250px; overflow-y: auto;">
+                            <?php $hist = $history_by_device[$item['id']] ?? []; ?>
+                            <?php if(empty($hist)): ?>
+                              <div class="text-muted small fst-italic">Brak historii.</div>
+                            <?php endif; ?>
+                            <?php foreach ($hist as $h): ?>
+                              <div class="timeline-item">
+                                <div class="timeline-icon <?= $h['event_type'] === 'CREATE' ? 'bg-success' : '' ?>"></div>
+                                <div class="small text-muted mb-1"><?= htmlspecialchars($h['date']) ?> &bull; <strong><?= htmlspecialchars($h['changed_by']) ?></strong></div>
+                                <div class="small p-2 rounded" style="background-color: #27272a; border: 1px solid #3f3f46;">
+                                  <strong class="text-light"><?= htmlspecialchars($h['event_type']) ?>:</strong> <span class="text-muted"><?= htmlspecialchars((string)$h['description']) ?></span>
+                                  <?php if ($h['event_type'] === 'UPDATE' && $h['field_name']): ?>
+                                    <div class="mt-2 pt-2 border-top border-secondary border-opacity-25">
+                                      <s class="text-muted"><?= htmlspecialchars((string)$h['old_value']) ?: '(puste)' ?></s> &rarr; <span class="text-info"><?= htmlspecialchars((string)$h['new_value']) ?: '(puste)' ?></span>
+                                    </div>
+                                  <?php endif; ?>
+                                  <?php if ($h['event_type'] === 'ASSIGN' || $h['event_type'] === 'TRANSFER' || $h['event_type'] === 'RETURN'): ?>
+                                    <div class="mt-2 pt-2 border-top border-secondary border-opacity-25 text-light">
+                                      <span class="text-muted">Z:</span> <?= $h['old_user_id'] ? htmlspecialchars($h['o_fn'].' '.$h['o_ln']) : 'Magazyn' ?> &rarr; <span class="text-muted">Do:</span> <?= $h['new_user_id'] ? htmlspecialchars($h['n_fn'].' '.$h['n_ln']) : 'Magazyn' ?>
+                                    </div>
+                                  <?php endif; ?>
+                                  <?php if ($h['event_type'] === 'MOVE'): ?>
+                                    <div class="mt-2 pt-2 border-top border-secondary border-opacity-25 text-light">
+                                      <span class="text-muted">Pokój:</span> <?= htmlspecialchars((string)$h['old_room']) ?: 'Brak' ?> &rarr; <?= htmlspecialchars((string)$h['new_room']) ?: 'Brak' ?>
+                                    </div>
+                                  <?php endif; ?>
+                                </div>
+                              </div>
+                            <?php endforeach; ?>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile list -->
     <div class="row d-md-none">
-      <!-- Mobile list -->
       <?php if (empty($items)): ?>
-        <div class="col-12 text-center text-muted py-4">Brak wpisów pasujących do kryteriów wyszukiwania.</div>
+        <div class="col-12 text-center text-muted py-4">Brak wpisów.</div>
       <?php endif; ?>
       <?php foreach ($items as $item): ?>
         <div class="col-12 mb-3">
           <div class="card border-0 shadow-sm">
             <div class="card-body">
               <div class="d-flex justify-content-between align-items-start mb-2">
-                <span class="badge bg-secondary">Pokój: <?= htmlspecialchars($item['room_number']) ?></span>
-                  <div class="dropdown">
-                    <button class="btn btn-light btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">⚙️</button>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                      <li><a class="dropdown-menu-item text-primary px-3 py-1 d-block text-decoration-none" href="edit.php?id=<?= $item['id'] ?>">Edytuj</a></li>
-                      <li>
-                        <form method="POST" action="index.php" onsubmit="return confirm('Czy na pewno chcesz usunąć to urządzenie z inwentarza?');">
-                          <input type="hidden" name="action" value="delete">
-                          <input type="hidden" name="item_id" value="<?= $item['id'] ?>">
-                          <button type="submit" class="dropdown-menu-item text-danger border-0 bg-transparent px-3 py-1 text-start w-100">Usuń</button>
-                        </form>
-                      </li>
-                    </ul>
-                  </div>
+                <span class="badge bg-secondary"><?= htmlspecialchars($item['status']) ?></span>
+                <span class="badge bg-info text-dark">Pokój: <?= htmlspecialchars((string)$item['room']) ?></span>
               </div>
-              <h6 class="fw-bold card-title mb-1"><?= htmlspecialchars($item['device_type_name'] ?? 'Nieokreślony') ?> - <?= htmlspecialchars($item['manufacturer_name'] ?? 'Nieokreślony') ?></h6>
-              <div class="small mb-1"><strong>Model:</strong> <span class="text-dark"><?= htmlspecialchars($item['model'] ?? '-') ?></span></div>
-              <div class="small mb-1"><strong>S/N:</strong> <code class="text-dark"><?= htmlspecialchars($item['serial_number']) ?></code></div>
-              <div class="small mb-1"><strong>Inw:</strong> <code><?= htmlspecialchars($item['inventory_number']) ?></code></div>
-              <?php if ($item['notes']): ?>
-                <div class="small p-2 bg-light rounded text-muted mt-2 border-start border-primary" style="font-style: italic;">
-                  <?= htmlspecialchars($item['notes']) ?>
+              <h6 class="fw-bold card-title mb-1"><?= htmlspecialchars((string)$item['manufacturer']) ?> - <?= htmlspecialchars((string)$item['model']) ?></h6>
+              <div class="small mb-1"><strong>S/N:</strong> <code class="text-light"><?= htmlspecialchars((string)$item['serial_number']) ?></code></div>
+              <div class="small mb-1"><strong>Inw:</strong> <code><?= htmlspecialchars($item['asset_number']) ?></code></div>
+              <div class="small mb-2"><strong>Osoba:</strong> <?= $item['user_id'] ? htmlspecialchars($item['first_name'] . ' ' . $item['last_name']) : '<span class="text-muted">Brak</span>' ?></div>
+              
+              <div class="d-flex justify-content-between mt-3 border-top pt-3">
+                <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#mob-history-<?= $item['id'] ?>">Historia ▾</button>
+                <a href="edit.php?id=<?= $item['id'] ?>" class="btn btn-primary btn-sm px-3">Edytuj</a>
+              </div>
+
+              <!-- Mobile History Collapse -->
+              <div class="collapse mt-3" id="mob-history-<?= $item['id'] ?>">
+                <div class="p-3 rounded mb-3" style="background-color: #121212; border: 1px solid #27272a;">
+                  <h6 class="text-uppercase text-muted fw-bold mb-2" style="font-size: 0.75rem; letter-spacing: 1px;">Szczegóły</h6>
+                  <div class="small text-light mb-1"><span class="text-muted">Opis:</span> <?= htmlspecialchars((string)$item['description']) ?: 'Brak' ?></div>
+                  <div class="small text-light mb-1"><span class="text-muted">Zakup:</span> <?= htmlspecialchars((string)$item['purchase_date']) ?: 'Brak' ?> (<?= $item['purchase_price'] ? htmlspecialchars((string)$item['purchase_price']).' PLN' : 'Brak' ?>)</div>
+                  <div class="small text-light mb-1"><span class="text-muted">Faktura:</span> <?= htmlspecialchars((string)$item['invoice']) ?: 'Brak' ?></div>
+                  <div class="small text-light"><span class="text-muted">Gw. do:</span> <?= htmlspecialchars((string)$item['warranty_until']) ?: 'Brak' ?></div>
                 </div>
-              <?php endif; ?>
-              <div class="text-end text-muted mt-2" style="font-size: 11px;">
-                Dodane przez: <?= htmlspecialchars($item['creator_name']) ?> (<?= substr($item['created_at'], 0, 16) ?>)
+                <h6 class="text-uppercase text-muted fw-bold mb-3 ms-1" style="font-size: 0.75rem; letter-spacing: 1px;">Historia wpisów</h6>
+                <div class="timeline" style="border-left-color: #3f3f46; padding-left: 1rem;">
+                  <?php $hist = $history_by_device[$item['id']] ?? []; ?>
+                  <?php if(empty($hist)): ?>
+                    <div class="text-muted small fst-italic">Brak historii.</div>
+                  <?php endif; ?>
+                  <?php foreach ($hist as $h): ?>
+                    <div class="timeline-item mb-3">
+                      <div class="timeline-icon <?= $h['event_type'] === 'CREATE' ? 'bg-success' : '' ?>" style="width: 1rem; height: 1rem; left: -1.6rem; top: 0.2rem;"></div>
+                      <div class="small fw-bold text-light"><?= htmlspecialchars($h['date']) ?></div>
+                      <div class="small text-muted mb-1"><?= htmlspecialchars($h['event_type']) ?> &bull; <?= htmlspecialchars($h['changed_by']) ?></div>
+                      <div class="small p-2 rounded" style="background-color: #27272a; border: 1px solid #3f3f46;">
+                        <span class="text-light"><?= htmlspecialchars((string)$h['description']) ?></span>
+                        <?php if ($h['event_type'] === 'UPDATE' && $h['field_name']): ?>
+                          <div class="mt-2 pt-2 border-top border-secondary border-opacity-25">
+                            <span class="text-info"><?= htmlspecialchars((string)$h['new_value']) ?: '(puste)' ?></span>
+                          </div>
+                        <?php endif; ?>
+                      </div>
+                    </div>
+                  <?php endforeach; ?>
+                </div>
               </div>
             </div>
           </div>
@@ -486,238 +548,91 @@ try {
       <?php endforeach; ?>
     </div>
 
-    <!-- Desktop list -->
-    <div class="card border-0 shadow-sm d-none d-md-block">
-      <div class="card-body p-0">
-        <div class="table-responsive">
-          <table class="table table-hover align-middle mb-0 small">
-            <thead class="table-light text-muted">
-              <tr>
-                <th>Pokój</th>
-                <th>Typ urządzenia</th>
-                <th>Producent</th>
-                <th>Model</th>
-                <th>Numer seryjny</th>
-                <th>Numer inwentarzowy</th>
-                <th>Uwagi</th>
-                <th>Kto dodał</th>
-                <th class="text-end px-3">Opcje</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php if (empty($items)): ?>
-                <tr>
-                  <td colspan="8" class="text-center text-muted py-4">Brak wpisów pasujących do kryteriów wyszukiwania.</td>
-                </tr>
-              <?php endif; ?>
-              <?php foreach ($items as $item): ?>
-                <tr>
-                  <td><strong><?= htmlspecialchars($item['room_number']) ?></strong></td>
-                  <td><?= htmlspecialchars($item['device_type_name'] ?? 'Nieokreślony') ?></td>
-                  <td><?= htmlspecialchars($item['manufacturer_name'] ?? 'Nieokreślony') ?></td>
-                  <td><?= htmlspecialchars($item['model'] ?? '-') ?></td>
-                  <td><code class="text-dark"><?= htmlspecialchars($item['serial_number']) ?></code></td>
-                  <td><code><?= htmlspecialchars($item['inventory_number']) ?></code></td>
-                  <td class="text-muted" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="<?= htmlspecialchars($item['notes'] ?? '') ?>"><?= htmlspecialchars($item['notes'] ?? '') ?></td>
-                  <td><?= htmlspecialchars($item['creator_name']) ?></td>
-                  <td class="text-end px-3">
-                    <a href="edit.php?id=<?= $item['id'] ?>" class="btn btn-outline-primary btn-sm me-1 py-1">Edytuj</a>
-                    <form method="POST" action="index.php" class="d-inline" onsubmit="return confirm('Czy na pewno chcesz usunąć to urządzenie z inwentarza?');">
-                      <input type="hidden" name="action" value="delete">
-                      <input type="hidden" name="item_id" value="<?= $item['id'] ?>">
-                      <button type="submit" class="btn btn-outline-danger btn-sm py-1">Usuń</button>
-                    </form>
-                  </td>
-                </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
   </div>
 
-  <!-- Bootstrap 5 JS -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
-  <!-- Modal Skanera -->
-  <div class="modal fade" id="scannerModal" tabindex="-1" aria-labelledby="scannerModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+  <!-- ADD DEVICE MODAL -->
+  <div class="modal fade" id="addDeviceModal" tabindex="-1" aria-labelledby="addDeviceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
       <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
-        <div class="modal-header border-0 pb-0">
-          <h5 class="modal-title fw-bold" id="scannerModalLabel">📷 Skanowanie kodu</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij" onclick="stopScanner()"></button>
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-primary" id="addDeviceModalLabel">📋 Dodaj nowe urządzenie</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
         </div>
-        <div class="modal-body text-center">
-          <p class="text-muted small">Skieruj aparat na kod kreskowy lub kod QR tabliczki znamionowej.</p>
-          <div id="scanner-container">
-            <div id="reader" style="width: 100%;"></div>
-          </div>
-          <div class="mt-3">
-            <label for="cameraSelect" class="form-label small fw-semibold">Wybierz kamerę:</label>
-            <select id="cameraSelect" class="form-select form-select-sm" onchange="switchCamera(this.value)"></select>
-          </div>
-        </div>
-        <div class="modal-footer border-0 pt-0 justify-content-center">
-          <button type="button" class="btn btn-secondary btn-sm px-4" data-bs-dismiss="modal" onclick="stopScanner()">Anuluj</button>
+        <div class="modal-body">
+          <form method="POST" action="index.php">
+            <input type="hidden" name="action" value="create_device">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label small fw-semibold">Numer inwentarzowy (wymagany)</label>
+                <input type="text" class="form-control form-control-sm" name="asset_number" required placeholder="np. IT-000842">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label small fw-semibold">Producent</label>
+                <input type="text" class="form-control form-control-sm" name="manufacturer" placeholder="np. NTT, Dell, HP">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label small fw-semibold">Model</label>
+                <input type="text" class="form-control form-control-sm" name="model" placeholder="np. Latitude 5520">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label small fw-semibold">Numer seryjny (S/N)</label>
+                <input type="text" class="form-control form-control-sm" name="serial_number" placeholder="np. ABC123XYZ">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label small fw-semibold">Data zakupu</label>
+                <input type="date" class="form-control form-control-sm" name="purchase_date">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label small fw-semibold">Cena zakupu (PLN)</label>
+                <input type="number" step="0.01" class="form-control form-control-sm" name="purchase_price" placeholder="0.00">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label small fw-semibold">Nr faktury</label>
+                <input type="text" class="form-control form-control-sm" name="invoice" placeholder="FV/...">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label small fw-semibold">Gwarancja do</label>
+                <input type="date" class="form-control form-control-sm" name="warranty_until">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label small fw-semibold">Przypisany pracownik</label>
+                <select class="form-select form-select-sm" name="assigned_user_id">
+                  <option value="">-- Brak (Magazyn) --</option>
+                  <?php foreach ($all_users as $u): ?>
+                    <option value="<?= $u['id'] ?>"><?= htmlspecialchars($u['first_name'] . ' ' . $u['last_name']) ?> (<?= htmlspecialchars($u['username']) ?>)</option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label small fw-semibold">Pokój (Lokalizacja)</label>
+                <input type="text" class="form-control form-control-sm" name="room" placeholder="np. 9, Magazyn, Serwerownia">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label small fw-semibold">Status</label>
+                <select class="form-select form-select-sm" name="status">
+                  <option value="ACTIVE" selected>ACTIVE (W użyciu)</option>
+                  <option value="WAREHOUSE">WAREHOUSE (W magazynie)</option>
+                  <option value="RESERVED">RESERVED (Zarezerwowany)</option>
+                  <option value="REPAIR">REPAIR (W naprawie)</option>
+                  <option value="DISPOSED">DISPOSED (Zutylizowany)</option>
+                  <option value="LOST">LOST (Zgubiony/Skradziony)</option>
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label small fw-semibold">Opis / Uwagi</label>
+                <textarea class="form-control form-control-sm" name="description" rows="2"></textarea>
+              </div>
+            </div>
+            <div class="text-end border-top pt-3 mt-2">
+              <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">Anuluj</button>
+              <button type="submit" class="btn btn-primary px-4">💾 Zapisz sprzęt</button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
   </div>
-  
-  <!-- JavaScript for conditional custom fields and scanner -->
-  <script>
-    function toggleCustomInput(selectId, customDivId, customInputId) {
-        const select = document.getElementById(selectId);
-        const customDiv = document.getElementById(customDivId);
-        const customInput = document.getElementById(customInputId);
-        
-        if (select.value === 'custom') {
-            customDiv.classList.remove('d-none');
-            customInput.setAttribute('required', 'required');
-            customInput.focus();
-        } else {
-            customDiv.classList.add('d-none');
-            customInput.removeAttribute('required');
-            customInput.value = '';
-        }
-    }
 
-    let html5QrCode;
-    let targetInputId = '';
-    let currentCameraId = '';
-
-    function startScanner(inputId) {
-        targetInputId = inputId;
-        const modalEl = document.getElementById('scannerModal');
-        const modal = new bootstrap.Modal(modalEl);
-        modal.show();
-
-        // Wait for modal to show, then init scanner
-        modalEl.addEventListener('shown.bs.modal', function onShown() {
-            initScanner();
-            modalEl.removeEventListener('shown.bs.modal', onShown);
-        });
-    }
-
-    function initScanner() {
-        if (!window.isSecureContext) {
-            alert("⚠️ SKANER WYMAGA POŁĄCZENIA HTTPS!\n\nPrzeglądarki mobilne blokują dostęp do kamery na stronach bez certyfikatu SSL (zaczynających się od http://). Uruchom stronę pod adresem zaczynającym się od https://");
-            const modalEl = document.getElementById('scannerModal');
-            const modal = bootstrap.Modal.getInstance(modalEl);
-            if (modal) {
-                modal.hide();
-            }
-            return;
-        }
-
-        // Start scanning immediately with environment facingMode (rear camera)
-        startCamera(null);
-    }
-
-    function startCamera(cameraId) {
-        if (html5QrCode) {
-            html5QrCode.stop().then(() => {
-                launchCamera(cameraId);
-            }).catch(err => {
-                console.error(err);
-                launchCamera(cameraId);
-            });
-        } else {
-            launchCamera(cameraId);
-        }
-    }
-
-    function launchCamera(cameraId) {
-        html5QrCode = new Html5Qrcode("reader");
-        const config = { fps: 15, qrbox: { width: 250, height: 150 } };
-        
-        // Define camera source: either specific ID or facingMode: environment
-        const cameraSource = cameraId ? cameraId : { facingMode: "environment" };
-        
-        html5QrCode.start(
-            cameraSource, 
-            config,
-            (decodedText, decodedResult) => {
-                // Success callback
-                let assignedField = '';
-                if (targetInputId === 'auto') {
-                    // Smart detection: if code starts with INW or contains slashes, put into inventory_number
-                    if (decodedText.toLowerCase().includes('inw') || decodedText.includes('/') || decodedText.includes('\\')) {
-                        document.getElementById('inventory_number').value = decodedText;
-                        assignedField = 'Numer inwentarzowy';
-                    } else {
-                        document.getElementById('serial_number').value = decodedText;
-                        assignedField = 'Numer seryjny';
-                    }
-                    alert('Odczytano kod: "' + decodedText + '". Przypisano do: ' + assignedField);
-                } else {
-                    document.getElementById(targetInputId).value = decodedText;
-                }
-                
-                // Vibrate if supported
-                if (navigator.vibrate) {
-                    navigator.vibrate(100);
-                }
-                
-                // Hide modal and clean up
-                const modalEl = document.getElementById('scannerModal');
-                const modal = bootstrap.Modal.getInstance(modalEl);
-                if (modal) {
-                    modal.hide();
-                }
-                stopScanner();
-            },
-            (errorMessage) => {
-                // Ignore scanning failures (which happen continuously until a code is found)
-            }
-        ).then(() => {
-            // Once running, load cameras list in background (if not already loaded) to populate cameraSelect dropdown
-            Html5Qrcode.getCameras().then(devices => {
-                if (devices && devices.length > 0) {
-                    const cameraSelect = document.getElementById('cameraSelect');
-                    cameraSelect.innerHTML = '';
-                    devices.forEach(device => {
-                        const option = document.createElement('option');
-                        option.value = device.id;
-                        option.text = device.label || `Kamera ${cameraSelect.length + 1}`;
-                        // If this is currently active camera, select it
-                        if (cameraId === device.id || (!cameraId && (device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('environment') || device.label.toLowerCase().includes('tył') || device.label.toLowerCase().includes('rear')))) {
-                            option.selected = true;
-                        }
-                        cameraSelect.appendChild(option);
-                    });
-                }
-            }).catch(e => console.log("Silent ignore cameras list", e));
-        }).catch(err => {
-            console.error("Nie można uruchomić kamery:", err);
-            alert("Nie można uruchomić kamery. Upewnij się, że udzieliłeś uprawnień do aparatu dla tej witryny.");
-        });
-    }
-
-    function switchCamera(cameraId) {
-        startCamera(cameraId);
-    }
-
-    function stopScanner() {
-        if (html5QrCode) {
-            if (html5QrCode.isScanning) {
-                html5QrCode.stop().then(() => {
-                    html5QrCode = null;
-                }).catch(err => {
-                    console.error("Błąd podczas zatrzymywania skanera:", err);
-                });
-            } else {
-                html5QrCode = null;
-            }
-        }
-    }
-    
-    // Clean up if modal is closed via close buttons, backdrop click, or ESC
-    document.getElementById('scannerModal').addEventListener('hidden.bs.modal', function () {
-        stopScanner();
-    });
-  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

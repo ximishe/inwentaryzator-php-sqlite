@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="pl" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -59,43 +59,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   
-  <style>
-    body {
-      font-family: 'Outfit', sans-serif;
-      background: radial-gradient(circle at 10% 20%, rgba(30, 58, 138, 0.9) 0%, rgba(59, 130, 246, 0.8) 90%);
-      height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0;
-      padding: 15px;
-    }
-    .login-card {
-      max-width: 400px;
-      width: 100%;
-      border: none;
-      border-radius: 20px;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
-      background-color: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
-    }
-    .btn {
-      border-radius: 12px;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-      transition: all 0.2s;
-    }
-    .form-control {
-      border-radius: 12px;
-      padding: 0.6rem 0.8rem;
-    }
-    .form-control:focus {
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-    }
-  </style>
+  <link rel="stylesheet" href="assets/style.css">
 </head>
-<body>
+<body class="login-page">
   <div class="card login-card p-4">
     <div class="text-center mb-4">
       <h2 class="h4 fw-bold text-primary">Inwentaryzator</h2>
