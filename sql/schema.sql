@@ -94,3 +94,22 @@ CREATE TABLE IF NOT EXISTS device_history (
 
 CREATE INDEX IF NOT EXISTS idx_device_user_id ON device(user_id);
 CREATE INDEX IF NOT EXISTS idx_device_history_device_id ON device_history(device_id);
+
+CREATE TABLE IF NOT EXISTS app_fields (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  field_key TEXT NOT NULL,
+  label TEXT NOT NULL,
+  field_type TEXT NOT NULL DEFAULT 'text',
+  source_type TEXT NOT NULL DEFAULT 'native',
+  type_id INTEGER DEFAULT NULL,
+  show_in_main INTEGER NOT NULL DEFAULT 1,
+  show_in_details INTEGER NOT NULL DEFAULT 1,
+  show_in_form INTEGER NOT NULL DEFAULT 1,
+  log_history INTEGER NOT NULL DEFAULT 1,
+  is_required INTEGER NOT NULL DEFAULT 0,
+  order_main INTEGER NOT NULL DEFAULT 0,
+  order_details INTEGER NOT NULL DEFAULT 0,
+  order_form INTEGER NOT NULL DEFAULT 0,
+  FOREIGN KEY (type_id) REFERENCES device_type(id) ON DELETE CASCADE
+);
+

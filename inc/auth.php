@@ -1,9 +1,8 @@
 <?php
 declare(strict_types=1);
 
-if (!defined('SESSION_NAME')) {
-    define('SESSION_NAME', 'helpdesk_sess');
-}
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/db.php';
 
 function start_session(): void {
     if (session_status() === PHP_SESSION_NONE) {
@@ -60,3 +59,4 @@ function get_logged_username(): string {
     start_session();
     return (string)($_SESSION['username'] ?? '');
 }
+

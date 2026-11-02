@@ -1,3 +1,4 @@
-/data/inventory.sqlite
+/data/*.backup*.sqlite
+*.bak.php
 /.system_generated/
 /*.log
