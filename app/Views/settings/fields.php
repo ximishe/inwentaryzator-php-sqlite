@@ -1,7 +1,7 @@
 <h3 class="fw-bold mb-3">Ustawienia Systemowe Pól (UI Builder)</h3>
 <p class="text-muted mb-4">Przeciągnij wiersze ↕, aby ustalić kolejność. Steruj widocznością kolumn i logowaniem historii za pomocą przełączników. Ustawienia te globalnie wpływają na to, jak system generuje formularze i tabele.</p>
 
-<form method="POST" action="/INVENTARYZATOR/settings_fields.php">
+<form method="POST" action="settings_fields.php">
   <input type="hidden" name="action" value="save_fields">
   
   <div class="card border-0 shadow-sm mb-4">

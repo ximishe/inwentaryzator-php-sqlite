@@ -8,7 +8,7 @@ class TypeController extends Controller {
         require_once __DIR__ . '/../../inc/auth.php';
         require_login();
         if (!is_admin()) {
-            $this->redirect('/INVENTARYZATOR/index.php');
+            $this->redirect('index.php');
         }
 
         $model = new Model();
