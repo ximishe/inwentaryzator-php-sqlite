@@ -91,12 +91,82 @@
     <?= $content ?? '' ?>
 </div>
 
+<!-- Modal Skanera Kodów Kreskowych i QR -->
+<div class="modal fade" id="barcodeScannerModal" tabindex="-1" aria-labelledby="barcodeScannerModalLabel" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; background-color: #121214;">
+      <div class="modal-header border-bottom border-secondary border-opacity-25 pb-3">
+        <div>
+          <h5 class="modal-title fw-bold text-light d-flex align-items-center gap-2 mb-1" id="barcodeScannerModalLabel">
+            <span class="badge bg-primary p-2 rounded-3"><i class="bi bi-upc-scan fs-6"></i></span>
+            Skaner kodów aparatem
+          </h5>
+          <div class="text-muted small" id="scannerTargetLabel">Skieruj aparat na kod kreskowy lub QR</div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Zamknij"></button>
+      </div>
+      <div class="modal-body p-2 p-md-3">
+        <!-- Komunikat błędu / ostrzeżenia -->
+        <div id="scannerAlert" class="alert alert-warning d-none py-2 px-3 small mb-2" role="alert"></div>
+
+        <!-- Główny kontener kamery -->
+        <div class="scanner-viewport-wrapper position-relative overflow-hidden rounded-3 bg-black">
+          <div id="scanner-reader"></div>
+          
+          <!-- Nakładka celownika (Aiming reticle) -->
+          <div class="scanner-overlay d-none" id="scannerReticleOverlay">
+            <div class="scanner-reticle">
+              <div class="scanner-laser"></div>
+              <div class="reticle-corner top-left"></div>
+              <div class="reticle-corner top-right"></div>
+              <div class="reticle-corner bottom-left"></div>
+              <div class="reticle-corner bottom-right"></div>
+            </div>
+            <div class="scanner-hint text-center text-white-50 small mt-2">
+              <i class="bi bi-camera me-1"></i> Tylny aparat aktywny. Ustaw kod wewnątrz ramki.
+            </div>
+          </div>
+        </div>
+
+        <!-- Pasek narzędzi skanera -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 pt-2 border-top border-secondary border-opacity-25">
+          <div class="d-flex align-items-center gap-2">
+            <!-- Wybór kamery -->
+            <select id="scannerCameraSelect" class="form-select form-select-sm bg-dark text-light border-secondary" style="max-width: 210px;">
+              <option value="">Wykrywanie aparatów...</option>
+            </select>
+            <!-- Przycisk latarki -->
+            <button type="button" id="scannerTorchBtn" class="btn btn-outline-warning btn-sm d-none" title="Włącz/wyłącz latarkę">
+              <i class="bi bi-flashlight"></i> Latarka
+            </button>
+          </div>
+
+          <div class="d-flex align-items-center gap-2">
+            <!-- Alternatywa: zrób zdjęcie natywnym aparatem lub wybierz z galerii -->
+            <input type="file" id="scannerFileInput" accept="image/*" capture="environment" style="display: none;">
+            <button type="button" id="scannerUploadBtn" class="btn btn-outline-secondary btn-sm">
+              <i class="bi bi-camera-fill me-1"></i> Zrób zdjęcie / Wgraj
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer border-top border-secondary border-opacity-25 py-2">
+        <button type="button" class="btn btn-secondary btn-sm px-4" data-bs-dismiss="modal">Anuluj</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
 <script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
 <script src="https://cdn.datatables.net/responsive/2.4.1/js/responsive.bootstrap5.min.js"></script>
+
+<!-- Barcode & QR Code Scanner Library and Controller -->
+<script src="assets/html5-qrcode.min.js"></script>
+<script src="assets/scanner.js"></script>
 
 <?php if (isset($extra_js)) echo $extra_js; ?>
 

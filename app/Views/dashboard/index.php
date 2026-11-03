@@ -39,7 +39,10 @@
         <div class="col-12 col-lg-5">
           <div class="input-group">
             <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-search"></i></span>
-            <input type="text" name="q" class="form-control bg-dark text-light border-secondary" placeholder="Szukaj: S/N, inwentarz, model, pokój..." value="<?= htmlspecialchars($search) ?>">
+            <input type="text" name="q" id="dashboard_search_input" class="form-control bg-dark text-light border-secondary" placeholder="Szukaj: S/N, inwentarz, model, pokój..." value="<?= htmlspecialchars($search) ?>">
+            <button type="button" class="btn btn-outline-primary btn-scan-barcode" data-target="#dashboard_search_input" data-label="Szukaj po kodzie" title="Skanuj kod aparatem">
+              <i class="bi bi-upc-scan"></i>
+            </button>
             <?php if ($search !== ''): ?>
               <a href="index.php?reset=1" class="btn btn-outline-secondary border-secondary text-muted" title="Wyczyść"><i class="bi bi-x-lg"></i></a>
             <?php endif; ?>
@@ -605,7 +608,12 @@
               <label class="form-label text-muted small fw-bold mb-1">
                 Nr inwentarzowy <span class="badge bg-secondary text-light fw-normal ms-1" style="font-size:0.65rem;">Opcjonalny (auto-generowany)</span>
               </label>
-              <input type="text" name="native[asset_number]" class="form-control bg-dark text-light border-secondary" placeholder="np. IT-000842 (lub puste dla auto)">
+              <div class="input-group">
+                <input type="text" id="add_asset_number" name="native[asset_number]" class="form-control bg-dark text-light border-secondary" placeholder="np. IT-000842 (lub puste dla auto)">
+                <button type="button" class="btn btn-outline-primary btn-scan-barcode" data-target="#add_asset_number" data-label="Nr inwentarzowy" title="Skanuj kod aparatem">
+                  <i class="bi bi-upc-scan me-1"></i> Skanuj
+                </button>
+              </div>
               <div class="form-text text-muted" style="font-size: 0.75rem;">Jeśli nie wpiszesz numeru, system automatycznie nada unikalny numer IT-XXXXXX.</div>
             </div>
             <div class="col-12 col-md-6">
@@ -636,7 +644,12 @@
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label text-muted small fw-bold mb-1">Numer seryjny (S/N)</label>
-              <input type="text" name="native[serial_number]" class="form-control bg-dark text-light border-secondary" placeholder="np. ABC123XYZ">
+              <div class="input-group">
+                <input type="text" id="add_serial_number" name="native[serial_number]" class="form-control bg-dark text-light border-secondary" placeholder="np. ABC123XYZ">
+                <button type="button" class="btn btn-outline-primary btn-scan-barcode" data-target="#add_serial_number" data-label="Numer seryjny (S/N)" title="Skanuj kod aparatem">
+                  <i class="bi bi-upc-scan me-1"></i> Skanuj
+                </button>
+              </div>
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label text-muted small fw-bold mb-1">Przypisany pracownik</label>

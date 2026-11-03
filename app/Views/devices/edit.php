@@ -117,7 +117,16 @@
                 
                 <?php else: ?>
                   <!-- text, number, date -->
-                  <input type="<?= htmlspecialchars($f['field_type']) ?>" name="<?= $input_name ?>" value="<?= htmlspecialchars((string)$val) ?>" class="form-control bg-dark text-light border-secondary" <?= $req ?>>
+                  <?php if ($fk === 'serial_number' || $fk === 'asset_number'): ?>
+                    <div class="input-group">
+                      <input type="<?= htmlspecialchars($f['field_type']) ?>" id="edit_field_<?= htmlspecialchars($fk) ?>" name="<?= $input_name ?>" value="<?= htmlspecialchars((string)$val) ?>" class="form-control bg-dark text-light border-secondary" <?= $req ?>>
+                      <button type="button" class="btn btn-outline-primary btn-scan-barcode" data-target="#edit_field_<?= htmlspecialchars($fk) ?>" data-label="<?= htmlspecialchars($f['label']) ?>" title="Skanuj kod aparatem">
+                        <i class="bi bi-upc-scan me-1"></i> Skanuj
+                      </button>
+                    </div>
+                  <?php else: ?>
+                    <input type="<?= htmlspecialchars($f['field_type']) ?>" name="<?= $input_name ?>" value="<?= htmlspecialchars((string)$val) ?>" class="form-control bg-dark text-light border-secondary" <?= $req ?>>
+                  <?php endif; ?>
                 <?php endif; ?>
               </div>
             <?php endforeach; ?>
