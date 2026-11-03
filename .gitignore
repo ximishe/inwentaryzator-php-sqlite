@@ -1,4 +1,13 @@
+# SQLite Database & temporary journals
+/data/*.sqlite
+/data/*.sqlite-wal
+/data/*.sqlite-shm
+/data/*.sqlite-journal
+/data/*.db
 /data/*.backup*.sqlite
+
+# Backup files, logs, cookies
 *.bak.php
 /.system_generated/
 /*.log
+cookies*.txt

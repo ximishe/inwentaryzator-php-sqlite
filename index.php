@@ -33,6 +33,8 @@ $router->get('/settings_fields.php', [\App\Controllers\SettingsController::class
 $router->post('/settings_fields.php', [\App\Controllers\SettingsController::class, 'fields']);
 $router->get('/edit.php', [\App\Controllers\DeviceController::class, 'edit']);
 $router->post('/edit.php', [\App\Controllers\DeviceController::class, 'edit']);
+$router->get('/change_password.php', [\App\Controllers\UserController::class, 'changePassword']);
+$router->post('/change_password.php', [\App\Controllers\UserController::class, 'changePassword']);
 
 // Dispatch
 $uri = $_SERVER['REQUEST_URI'];

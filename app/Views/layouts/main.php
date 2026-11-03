@@ -57,13 +57,16 @@
                 </li>
                 <?php endif; ?>
             </ul>
-            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 pt-3 pt-lg-0 border-top border-lg-0 border-secondary border-opacity-25">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 pt-3 pt-lg-0 border-top border-lg-0 border-secondary border-opacity-25">
                 <?php if (isset($_SESSION['username'])): ?>
                     <div class="text-secondary small d-flex align-items-center gap-2">
                         <i class="bi bi-person-circle fs-5 text-light"></i>
                         <span>Zalogowano: <strong class="text-light"><?= htmlspecialchars($_SESSION['username']) ?></strong></span>
                         <span class="badge bg-dark border border-secondary text-info text-uppercase" style="font-size: 0.65rem;"><?= htmlspecialchars($_SESSION['role'] ?? 'user') ?></span>
                     </div>
+                    <button type="button" class="btn btn-outline-info btn-sm d-flex align-items-center gap-1 px-2 py-1" data-bs-toggle="modal" data-bs-target="#changePasswordModal" title="Zmień swoje hasło">
+                        <i class="bi bi-key-fill"></i> <span class="d-none d-sm-inline">Zmień hasło</span>
+                    </button>
                 <?php endif; ?>
                 <a href="logout.php" class="btn btn-outline-danger btn-sm d-flex align-items-center gap-1 px-3 py-1">
                     <i class="bi bi-box-arrow-right"></i> Wyloguj
@@ -74,15 +77,21 @@
 </nav>
 
 <div class="container-fluid px-2 px-sm-3 px-md-4 pb-5">
-    <?php if (!empty($err)): ?>
+    <?php 
+      $display_err = $err ?? ($_SESSION['flash_err'] ?? '');
+      if (!empty($_SESSION['flash_err'])) unset($_SESSION['flash_err']);
+      $display_ok = $ok ?? ($_SESSION['flash_ok'] ?? '');
+      if (!empty($_SESSION['flash_ok'])) unset($_SESSION['flash_ok']);
+    ?>
+    <?php if (!empty($display_err)): ?>
         <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i><?= htmlspecialchars($err) ?>
+            <i class="bi bi-exclamation-triangle-fill me-2"></i><?= htmlspecialchars($display_err) ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Zamknij"></button>
         </div>
     <?php endif; ?>
-    <?php if (!empty($ok)): ?>
+    <?php if (!empty($display_ok)): ?>
         <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
-            <i class="bi bi-check-circle-fill me-2"></i><?= htmlspecialchars($ok) ?>
+            <i class="bi bi-check-circle-fill me-2"></i><?= htmlspecialchars($display_ok) ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Zamknij"></button>
         </div>
     <?php endif; ?>
@@ -157,6 +166,68 @@
   </div>
 </div>
 
+<!-- Modal Zmiany Hasła Użytkownika -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 18px; background-color: #18181b;">
+      <div class="modal-header border-bottom border-secondary border-opacity-25 pb-3">
+        <h5 class="modal-title fw-bold text-light d-flex align-items-center gap-2" id="changePasswordModalLabel">
+          <span class="badge bg-info bg-opacity-25 text-info p-2 rounded-3"><i class="bi bi-key-fill fs-6"></i></span>
+          Zmień swoje hasło
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Zamknij"></button>
+      </div>
+      <form id="changePasswordForm" method="POST" action="change_password.php">
+        <input type="hidden" name="return_url" value="<?= htmlspecialchars($_SERVER['REQUEST_URI'] ?? 'index.php') ?>">
+        <div class="modal-body p-3 p-md-4">
+          <!-- Alert feedback -->
+          <div id="changePassAlert" class="alert d-none py-2 px-3 small mb-3"></div>
+
+          <div class="mb-3">
+            <label class="form-label text-muted small fw-bold mb-1">Aktualne hasło</label>
+            <div class="input-group">
+              <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-lock"></i></span>
+              <input type="password" name="current_password" id="inputCurrentPass" class="form-control bg-dark text-light border-secondary" placeholder="Twoje obecne hasło" required autocomplete="current-password">
+              <button class="btn btn-outline-secondary toggle-pass-visibility" type="button" data-target="#inputCurrentPass" tabindex="-1">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-muted small fw-bold mb-1">Nowe hasło</label>
+            <div class="input-group">
+              <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-shield-lock"></i></span>
+              <input type="password" name="new_password" id="inputNewPass" class="form-control bg-dark text-light border-secondary" placeholder="Minimum 4 znaki" minlength="4" required autocomplete="new-password">
+              <button class="btn btn-outline-secondary toggle-pass-visibility" type="button" data-target="#inputNewPass" tabindex="-1">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+            <div class="form-text text-muted small">Wpisz nowe hasło (minimum 4 znaki).</div>
+          </div>
+
+          <div class="mb-2">
+            <label class="form-label text-muted small fw-bold mb-1">Powtórz nowe hasło</label>
+            <div class="input-group">
+              <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-check2-circle"></i></span>
+              <input type="password" name="confirm_password" id="inputConfirmPass" class="form-control bg-dark text-light border-secondary" placeholder="Powtórz nowe hasło" minlength="4" required autocomplete="new-password">
+              <button class="btn btn-outline-secondary toggle-pass-visibility" type="button" data-target="#inputConfirmPass" tabindex="-1">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer border-top border-secondary border-opacity-25 py-2 justify-content-between">
+          <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">Anuluj</button>
+          <button type="submit" id="btnSubmitChangePass" class="btn btn-info btn-sm px-4 fw-bold text-dark d-flex align-items-center gap-1">
+            <i class="bi bi-check-lg"></i> Zapisz nowe hasło
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
@@ -167,6 +238,92 @@
 <!-- Barcode & QR Code Scanner Library and Controller -->
 <script src="assets/html5-qrcode.min.js"></script>
 <script src="assets/scanner.js"></script>
+
+<script>
+$(document).ready(function() {
+  // Podgląd hasła (oko)
+  $(document).on('click', '.toggle-pass-visibility', function(e) {
+    e.preventDefault();
+    const targetSel = $(this).data('target');
+    const $input = $(targetSel);
+    const $icon = $(this).find('i');
+    if ($input.attr('type') === 'password') {
+      $input.attr('type', 'text');
+      $icon.removeClass('bi-eye').addClass('bi-eye-slash');
+    } else {
+      $input.attr('type', 'password');
+      $icon.removeClass('bi-eye-slash').addClass('bi-eye');
+    }
+  });
+
+  // Obsługa formularza zmiany hasła
+  $('#changePasswordForm').on('submit', async function(e) {
+    e.preventDefault();
+    const $form = $(this);
+    const $alert = $('#changePassAlert');
+    const $btn = $('#btnSubmitChangePass');
+    const originalBtnHtml = $btn.html();
+
+    const newPass = $('#inputNewPass').val();
+    const confirmPass = $('#inputConfirmPass').val();
+
+    if (newPass.length < 4) {
+      $alert.removeClass('alert-success d-none').addClass('alert-danger').html('Nowe hasło musi zawierać co najmniej 4 znaki.');
+      return;
+    }
+
+    if (newPass !== confirmPass) {
+      $alert.removeClass('alert-success d-none').addClass('alert-danger').html('Nowe hasła nie są ze sobą zgodne.');
+      return;
+    }
+
+    $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Zapisywanie...');
+    $alert.addClass('d-none').empty();
+
+    try {
+      const formData = new FormData(this);
+      formData.append('ajax', '1');
+
+      const response = await fetch('change_password.php', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        $alert.removeClass('alert-danger d-none').addClass('alert-success').html(data.message);
+        $form[0].reset();
+        setTimeout(function() {
+          const modalEl = document.getElementById('changePasswordModal');
+          const modalInst = bootstrap.Modal.getInstance(modalEl);
+          if (modalInst) modalInst.hide();
+          $alert.addClass('d-none');
+        }, 1300);
+      } else {
+        $alert.removeClass('alert-success d-none').addClass('alert-danger').html(data.message || 'Wystąpił błąd podczas zmiany hasła.');
+      }
+    } catch (err) {
+      $alert.removeClass('alert-success d-none').addClass('alert-danger').html('Wystąpił problem z połączeniem. Spróbuj ponownie.');
+    } finally {
+      $btn.prop('disabled', false).html(originalBtnHtml);
+    }
+  });
+
+  // Reset pól po ukryciu modala
+  const passModal = document.getElementById('changePasswordModal');
+  if (passModal) {
+    passModal.addEventListener('hidden.bs.modal', function() {
+      $('#changePassAlert').addClass('d-none').empty();
+      $('#changePasswordForm')[0].reset();
+      $('#inputCurrentPass, #inputNewPass, #inputConfirmPass').attr('type', 'password');
+      $('.toggle-pass-visibility i').removeClass('bi-eye-slash').addClass('bi-eye');
+    });
+  }
+});
+</script>
 
 <?php if (isset($extra_js)) echo $extra_js; ?>
 
